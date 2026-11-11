@@ -1,0 +1,1497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoinLab — Market</title>
+<meta name="description" content="Practice crypto trading with $10,000 in fake cash at real, live prices.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F6F8; --surface:#FFFFFF; --ink:#0F172A; --muted:#64748B; --line:#E8EAEF;
+  --up:#16A34A; --up-text:#15803D; --up-tint:rgba(22,163,74,.10);
+  --down:#DC2626; --down-text:#B91C1C; --down-tint:rgba(220,38,38,.09);
+  --glass:rgba(255,255,255,.72);
+  --radius:20px;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+  --t-fast:150ms; --t-base:240ms; --t-flash:600ms; --ease:cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0F17; --surface:#131925; --ink:#F1F5F9; --muted:#94A3B8; --line:#212A3A;
+    --up-text:#4ADE80; --down-text:#F87171; --up-tint:rgba(22,163,74,.16); --down-tint:rgba(220,38,38,.18);
+    --glass:rgba(11,15,23,.7);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:'Work Sans',system-ui,sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,.logo,.nav a{font-family:'Sora',sans-serif}
+.num{font-family:'Space Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* nav */
+header{position:sticky;top:0;z-index:10;background:var(--glass);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);
+  border-bottom:1px solid var(--line)}
+.nav{max-width:960px;margin:0 auto;padding:0 16px;height:64px;display:flex;align-items:center;gap:8px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;margin-right:auto}
+.logo i{width:30px;height:30px;border-radius:10px;background:var(--up);display:grid;place-items:center}
+.logo svg{width:18px;height:18px}
+.nav a.link{font-weight:500;font-size:14px;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:999px;transition:color var(--t-fast),background var(--t-fast)}
+.nav a.link:hover{color:var(--ink);background:var(--up-tint)}
+.nav a.link[aria-current="page"]{color:var(--ink);background:var(--surface);box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.cash{margin-left:8px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:700;box-shadow:var(--shadow)}
+.cash small{font:500 11px 'Work Sans';color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+a:focus-visible,button:focus-visible{outline:2px solid var(--up);outline-offset:2px}
+
+/* page */
+main{max-width:960px;margin:0 auto;padding:36px 16px 72px}
+.hero{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:24px}
+h1{font-size:clamp(26px,4vw,34px);font-weight:600;letter-spacing:-.03em;line-height:1.15}
+.sub{color:var(--muted);margin-top:6px;max-width:46ch}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--up);animation:pulse 2s infinite}
+.status.off .dot{background:#94A3B8;animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.4)}50%{box-shadow:0 0 0 6px rgba(22,163,74,0)}}
+
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden}
+.head,.row{display:grid;grid-template-columns:minmax(0,1fr) 96px 140px 120px;align-items:center;gap:16px;padding:0 24px}
+.head{height:44px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+.head span:nth-child(n+3),.row .price,.row .chg-wrap{text-align:right}
+.head span:nth-child(2){text-align:center}
+.row{height:72px;text-decoration:none;color:inherit;border-bottom:1px solid var(--line);transition:background var(--t-fast);
+  animation:in var(--t-base) var(--ease) both;animation-delay:calc(var(--i)*40ms)}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--bg)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.coin{display:flex;align-items:center;gap:14px;min-width:0}
+.ico{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font:700 14px 'Sora';overflow:hidden;background:var(--c)}
+.ico img{width:100%;height:100%;display:block;background:var(--surface)}
+.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sym{font-size:13px;color:var(--muted)}
+.price{font-size:15px;font-weight:700;border-radius:8px;padding:2px 6px;margin-right:-6px}
+.price.flash-up{animation:fu var(--t-flash) var(--ease)}
+.price.flash-down{animation:fd var(--t-flash) var(--ease)}
+@keyframes fu{from{background:var(--up-tint)}}
+@keyframes fd{from{background:var(--down-tint)}}
+.chg{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;border-radius:999px;padding:5px 10px}
+.chg.up{color:var(--up-text);background:var(--up-tint)}
+.chg.down{color:var(--down-text);background:var(--down-tint)}
+.chg b{font-size:9px;line-height:1}
+.chg.up b{color:var(--up)} .chg.down b{color:var(--down)}
+.chg.na,.spark.na,.price.na,.big.na,.stat .v.na{color:var(--muted)}
+.chg.na{background:var(--bg)}
+.c-price .chg.na{background:var(--surface);border:1px solid var(--line)}
+.unavail{padding:44px 24px 36px;text-align:center}
+.un-ico{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:var(--bg);color:#F59E0B;display:grid;place-items:center}
+.un-ico svg{width:26px;height:26px}
+.unavail h2{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.unavail p{color:var(--muted);max-width:44ch;margin:0 auto 22px}
+.retry{height:48px;padding:0 30px;border:0;border-radius:999px;background:var(--ink);color:var(--surface);font:600 15px 'Sora',sans-serif;cursor:pointer;transition:opacity var(--t-fast),transform var(--t-fast)}
+.retry:hover:not(:disabled){opacity:.88}
+.retry:active:not(:disabled){transform:scale(.97)}
+.retry:disabled{opacity:.6;cursor:progress}
+.un-note{min-height:22px;margin-top:12px;font-size:14px;color:var(--muted)}
+
+.spark{width:96px;height:32px}
+.spark svg{display:block;width:100%;height:100%;overflow:visible}
+.spark.up{color:var(--up)} .spark.down{color:var(--down)}
+.spark path.line{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.spark path.area{fill:currentColor;opacity:.10;stroke:none}
+.spark circle{fill:currentColor}
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,var(--line) 30%,var(--bg) 50%,var(--line) 70%);background-size:300% 100%;animation:shim 1.3s linear infinite}
+@keyframes shim{from{background-position:100% 0}to{background-position:0 0}}
+.sk-row{pointer-events:none}
+.sk-coin{display:flex;align-items:center;gap:14px}
+.sk-lines{display:grid;gap:8px}
+.search{display:block;position:relative;margin-bottom:28px}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+.search input{width:100%;height:52px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);
+  padding:0 16px 0 46px;font:400 16px 'Work Sans',sans-serif;color:var(--ink);transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+.search input::placeholder{color:var(--muted)}
+.search input:focus{outline:none;border-color:var(--up);box-shadow:0 0 0 4px var(--up-tint)}
+.sec{margin-bottom:28px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:0 4px 12px}
+.sec-h h2{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.sec-h span{font-size:13px;color:var(--muted)}
+.star{flex:none;width:32px;height:32px;margin-left:-8px;border:0;background:transparent;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast)}
+.star svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.star:hover{background:var(--bg);color:var(--ink)}
+.star:active{transform:scale(.88)}
+.star[aria-pressed="true"]{color:#F59E0B}
+.star[aria-pressed="true"] svg{fill:currentColor}
+.empty{padding:36px 24px;text-align:center;color:var(--muted)}
+.empty .em-ico{width:44px;height:44px;margin:0 auto 12px;border-radius:50%;background:var(--bg);display:grid;place-items:center;color:#F59E0B}
+.empty .em-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.empty strong{display:block;color:var(--ink);font:600 16px 'Sora',sans-serif;margin-bottom:4px}
+.row:not(.enter){animation:none}
+
+/* Row → detail link (stretched link keeps the star a separate, valid button) */
+[hidden]{display:none!important}
+.row{position:relative}
+.row:not(.sk-row){cursor:pointer}
+.rowlink{color:inherit;text-decoration:none}
+.rowlink::after{content:'';position:absolute;inset:0}
+.rowlink:focus-visible{outline:none}
+.rowlink:focus-visible::after{outline:2px solid var(--up);outline-offset:-2px;border-radius:12px}
+.star{position:relative;z-index:1}
+
+/* Coin detail */
+#viewCoin h1:focus{outline:none}
+.back{display:inline-flex;align-items:center;gap:6px;margin:0 0 20px -4px;padding:6px 12px 6px 8px;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:500;font-size:14px;transition:color var(--t-fast),background var(--t-fast)}
+.back:hover{color:var(--ink);background:var(--surface)}
+.back svg{width:16px;height:16px}
+.c-head{display:flex;align-items:center;gap:16px}
+.c-head .ico{width:56px;height:56px;font-size:20px}
+.c-head h1{font-size:clamp(26px,4.5vw,34px)}
+.c-head .sym{font-size:14px;margin-top:2px}
+.c-head .star{margin:0 0 0 auto;width:44px;height:44px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.c-head .star svg{width:20px;height:20px}
+.c-price{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:22px 0 28px}
+.c-price .big{font-size:clamp(34px,7.5vw,56px);font-weight:700;letter-spacing:-.03em;line-height:1.05;border-radius:12px;padding:2px 8px;margin-left:-8px}
+.c-price .big.flash-up{animation:fu var(--t-flash) var(--ease)}
+.c-price .big.flash-down{animation:fd var(--t-flash) var(--ease)}
+.c-price .chg{font-size:14px;padding:6px 12px}
+.chart-card{padding:20px 24px 14px}
+.chart-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;min-height:40px;margin-bottom:12px}
+.readout{display:flex;align-items:center;gap:10px;min-height:32px}
+.note{font-size:13px;color:var(--muted)}
+.readout .val{font-size:15px;font-weight:700}
+.tabs{display:inline-flex;gap:2px;padding:4px;border-radius:999px;background:var(--bg)}
+.tabs button{border:0;background:transparent;border-radius:999px;padding:7px 18px;font:600 13px 'Sora',sans-serif;color:var(--muted);cursor:pointer;transition:color var(--t-fast),background var(--t-fast)}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chart{position:relative;touch-action:pan-y;cursor:crosshair;border-radius:12px;outline-offset:4px}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart svg.up{color:var(--up)} .chart svg.down{color:var(--down)}
+.chart .gl{stroke:var(--line);stroke-width:1;stroke-dasharray:3 5}
+.chart .ax{fill:var(--muted);font:11px 'Space Mono',monospace;font-variant-numeric:tabular-nums}
+.chart .ln{fill:none;stroke:currentColor;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.chart svg.draw .ln{stroke-dasharray:1;animation:draw 700ms var(--ease)}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.chart .sl{stroke:var(--muted);stroke-width:1}
+.chart .sd{fill:currentColor;stroke:var(--surface);stroke-width:2.5}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px}
+.stat .l{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;margin:8px 0 4px}
+.stat .h{font-size:13px;color:var(--muted)}
+/* Portfolio */
+#viewPortfolio h1:focus{outline:none}
+.pf-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;padding:32px}
+.pf-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pf-total{display:block;font-size:clamp(38px,8vw,64px);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin:10px 0 18px}
+.pf-delta{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.pf-delta .chg{font-size:15px;padding:7px 14px}
+.pf-delta .chg b{font-size:11px}
+.chg.flat{color:var(--muted);background:var(--bg)}
+.pf-side{display:flex;flex-direction:column;justify-content:center;min-width:230px;padding-left:32px;border-left:1px solid var(--line)}
+.pf-cash{font-size:clamp(24px,4vw,32px);font-weight:700;letter-spacing:-.02em;margin:8px 0 4px}
+.pf-note{margin:14px 4px 0;font-size:14px;color:var(--muted)}
+@media (max-width:620px){
+  .pf-hero{grid-template-columns:1fr;gap:20px;padding:22px 20px}
+  .pf-side{min-width:0;padding:18px 0 0;border-left:0;border-top:1px solid var(--line)}
+}
+
+.pf-holdings{margin-top:28px}
+#viewHistory h1:focus,#viewReceipt h1:focus{outline:none}
+.rc-wrap{max-width:520px;margin:0 auto}
+.receipt{overflow:hidden}
+.rc-top{display:flex;flex-direction:column;align-items:center;text-align:center;padding:32px 24px 28px}
+.rc-top .ico{width:60px;height:60px;font-size:22px;margin-bottom:14px}
+.rc-name{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-bottom:14px}
+.rc-amt{font-size:clamp(34px,9vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.05}
+.rc-lbl{margin-top:6px;font-size:13px;color:var(--muted)}
+.ok-pill{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:6px 14px;border-radius:999px;background:var(--up-tint);color:var(--up-text);font:600 13px 'Sora',sans-serif}
+.ok-pill svg{width:14px;height:14px}
+.rc-tear{position:relative;border-top:2px dashed var(--line);margin:0 18px}
+.rc-tear::before,.rc-tear::after{content:'';position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg);box-shadow:inset 0 0 0 1px var(--line)}
+.rc-tear::before{left:-30px} .rc-tear::after{right:-30px}
+.rc-rows{margin:0;padding:10px 28px 6px}
+.rc-rows>div{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding:13px 0;border-bottom:1px solid var(--line)}
+.rc-rows>div:last-child{border-bottom:0}
+.rc-rows dt{flex:none;color:var(--muted);font-size:14px}
+.rc-rows dd{margin:0;text-align:right;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.rc-rows .total dt{color:var(--ink);font-weight:600}
+.rc-rows .total dd{font-size:18px;font-weight:700}
+.rc-foot{padding:14px 24px 26px}
+.view-btn{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:999px;background:var(--ink);color:var(--surface);font:600 16px 'Sora',sans-serif;text-decoration:none;transition:opacity var(--t-fast),transform var(--t-fast)}
+.view-btn:hover{opacity:.9}
+.view-btn:active{transform:scale(.985)}
+.view-btn svg{width:18px;height:18px;transition:transform var(--t-fast)}
+.view-btn:hover svg{transform:translateX(3px)}
+.rc-note{margin:14px 0 0;text-align:center;font-size:13px;color:var(--muted)}
+@media (max-width:620px){.rc-rows{padding:8px 20px 4px}.rc-top{padding:28px 20px 24px}}
+.hs-filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:24px}
+.chips{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:8px 16px;background:transparent;color:var(--muted);font:600 14px 'Sora',sans-serif;cursor:pointer;transition:color var(--t-fast),background var(--t-fast),box-shadow var(--t-fast)}
+.chip:hover{color:var(--ink)}
+.chip .cnt{font:700 12px 'Space Mono',monospace;font-variant-numeric:tabular-nums;opacity:.7}
+.chip[aria-checked="true"].all{background:var(--ink);color:var(--surface)}
+.chip[aria-checked="true"].buy{background:var(--up-tint);color:var(--up-text);box-shadow:inset 0 0 0 1.5px var(--up)}
+.chip[aria-checked="true"].sell{background:var(--down-tint);color:var(--down-text);box-shadow:inset 0 0 0 1.5px var(--down)}
+.sel{position:relative}
+.sel::after{content:'';position:absolute;right:16px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+.sel select{appearance:none;-webkit-appearance:none;height:46px;min-width:180px;padding:0 40px 0 18px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 15px 'Work Sans',sans-serif;box-shadow:var(--shadow);cursor:pointer;transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+.sel select:focus-visible,.hs-search input:focus{outline:none;border-color:var(--up);box-shadow:0 0 0 4px var(--up-tint)}
+.hs-search{position:relative;flex:1 1 220px;min-width:200px;display:block}
+.hs-search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--muted);pointer-events:none}
+.hs-search input{width:100%;height:46px;padding:0 16px 0 42px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:400 15px 'Work Sans',sans-serif;box-shadow:var(--shadow);transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+.hs-search input::placeholder{color:var(--muted)}
+.empty .empty-link{border:0;background:none;padding:0;font:600 15px 'Work Sans',sans-serif;cursor:pointer}
+@media (max-width:620px){.chips{width:100%}.chip{flex:1;justify-content:center;padding:9px 8px}.sel{flex:1 1 100%}.sel select{width:100%}.hs-search{flex:1 1 100%}}
+#viewHistory .sec{margin-bottom:24px}
+.tlist{list-style:none;margin:0;padding:0}
+.trow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--line);cursor:pointer;transition:background var(--t-fast)}
+.trow:last-child{border-bottom:0}
+.trow:hover{background:var(--bg)}
+.trow .ico{width:40px;height:40px}
+.t-top{display:flex;align-items:center;gap:10px;min-width:0}
+.t-top .hlink{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-tag{flex:none;padding:3px 10px;border-radius:999px;font:700 11px 'Sora',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.side-tag.buy{color:var(--up-text);background:var(--up-tint)}
+.side-tag.sell{color:var(--down-text);background:var(--down-tint)}
+.t-sub{margin-top:4px;font-size:13px;color:var(--muted)}
+.t-end{text-align:right}
+.t-total{font-size:15px;font-weight:700}
+.t-time{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
+@media (max-width:620px){.trow{padding:14px 16px;gap:12px;grid-template-columns:36px minmax(0,1fr) auto}.trow .ico{width:36px;height:36px;font-size:13px}.t-sub{font-size:12px}}
+.pf-fresh{margin-top:28px;padding:52px 24px 48px;text-align:center}
+.fresh-art svg{display:block;width:176px;height:auto;margin:0 auto 22px;overflow:visible}
+.fresh-art circle{transform-box:fill-box;transform-origin:center;animation:dotpulse 2.4s ease-in-out infinite}
+@keyframes dotpulse{50%{transform:scale(1.4)}}
+.pf-fresh h2{font-size:26px;font-weight:600;letter-spacing:-.025em;margin-bottom:10px}
+.pf-fresh p{max-width:44ch;margin:0 auto 28px;color:var(--muted)}
+.pf-fresh p b{color:var(--ink)}
+.go-btn{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 30px;border-radius:999px;background:#15803D;color:#fff;font:600 16px 'Sora',sans-serif;text-decoration:none;transition:background var(--t-fast),transform var(--t-fast)}
+.go-btn:hover{background:#166534}
+.go-btn:active{transform:scale(.97)}
+.go-btn svg{width:18px;height:18px;transition:transform var(--t-fast)}
+.go-btn:hover svg{transform:translateX(3px)}
+.party{position:fixed;left:50%;bottom:76px;width:0;height:0;z-index:70;pointer-events:none}
+.party i{position:absolute;left:0;top:0;border-radius:2px;opacity:0;animation:conf 1500ms cubic-bezier(.15,.7,.3,1) forwards}
+.toast.first{align-items:flex-start;max-width:min(440px,100%);padding:14px 22px 14px 14px;pointer-events:auto}
+.toast.first i{background:#F59E0B}
+.toast.first svg{fill:#fff;stroke:#fff;stroke-width:1.4}
+.toast.first .t{display:grid;gap:3px;line-height:1.45}
+.toast.first .h{font:600 16px 'Sora',sans-serif}
+.toast.first a{margin-top:4px;color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.chart svg.flat{color:var(--muted)}
+.alloc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:center;padding:28px 32px}
+.donut-wrap{position:relative;width:184px;height:184px}
+.donut-wrap svg{display:block;width:100%;height:100%}
+.donut-wrap .seg{fill:none;stroke-width:28;transition:opacity var(--t-base) var(--ease)}
+.donut-wrap .seg.dim{opacity:.28}
+.donut-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+.dc-v{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.dc-l{font-size:12px;color:var(--muted);margin-top:2px;max-width:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.legend li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 64px;align-items:center;gap:14px;padding:11px 12px;border-radius:12px;transition:background var(--t-fast)}
+.legend li:hover,.legend li.on{background:var(--bg)}
+.sw{width:12px;height:12px;border-radius:4px}
+.lg-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-val{font-size:13px;color:var(--muted)}
+.lg-pct{font-size:14px;font-weight:700;text-align:right}
+.lg-note{margin:10px 12px 0;font-size:13px;color:var(--muted)}
+@media (max-width:620px){
+  .alloc{grid-template-columns:1fr;justify-items:center;gap:20px;padding:22px 14px}
+  .legend-wrap{width:100%}
+  .legend li{gap:10px;padding:10px 8px}
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tbl-wrap{overflow-x:auto}
+table.hl{width:100%;min-width:660px;border-collapse:collapse}
+table.hl th{height:46px;padding:0 20px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+table.hl th.l,table.hl td:first-child{text-align:left}
+table.hl .r{text-align:right}
+.th-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 0;border:0;background:transparent;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;transition:color var(--t-fast)}
+.r .th-btn{flex-direction:row-reverse}
+.th-btn:hover,.th-btn.on{color:var(--ink)}
+.th-btn svg{width:12px;height:12px;opacity:0;transition:opacity var(--t-fast),transform var(--t-fast)}
+.th-btn:hover svg{opacity:.4}
+.th-btn.on svg{opacity:1}
+.th-btn[data-dir="desc"] svg{transform:rotate(180deg)}
+table.hl td{height:68px;padding:0 20px;font-size:14px;font-weight:700;border-bottom:1px solid var(--line);background:var(--surface);white-space:nowrap;transition:background var(--t-fast)}
+table.hl tbody tr:last-child td{border-bottom:0}
+table.hl tbody tr{cursor:pointer}
+table.hl tbody tr:hover td{background:var(--bg)}
+table.hl td:first-child,table.hl th:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+table.hl tbody tr:hover td:first-child{background:var(--bg)}
+table.hl td .coin{gap:12px}
+table.hl .sym{font-weight:400}
+table.hl .ico{width:36px;height:36px;font-size:13px}
+.hlink{color:inherit;text-decoration:none}
+.hlink:hover{text-decoration:underline}
+.tag{margin-left:8px;padding:1px 8px;border:1px dashed var(--muted);border-radius:999px;font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap}
+.dash{color:var(--muted);font-weight:400}
+.hrow.unk .ico{opacity:.55;filter:grayscale(.7)}
+.hrow.unk .nm a,.hrow.unk td.num{color:var(--muted)}
+.empty-link{display:inline-block;margin-top:10px;color:var(--up-text);font-weight:600;text-decoration:none}
+.empty-link:hover{text-decoration:underline}
+
+/* Trade card */
+.trade{padding:22px 24px 24px;margin-top:20px}
+.trade-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin-bottom:20px}
+.seg{display:inline-grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:999px;background:var(--bg);min-width:220px}
+.seg button{border:0;border-radius:999px;padding:9px 22px;font:600 14px 'Sora',sans-serif;color:var(--muted);background:transparent;cursor:pointer;transition:color var(--t-fast),background var(--t-fast),box-shadow var(--t-fast)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-checked="true"].buy{background:var(--up-tint);color:var(--up-text);box-shadow:inset 0 0 0 1.5px var(--up)}
+.seg button[aria-checked="true"].sell{background:var(--down-tint);color:var(--down-text);box-shadow:inset 0 0 0 1.5px var(--down)}
+.q-meta{font-size:14px;color:var(--muted)}
+.q-meta b{color:var(--ink);font-weight:700}
+.q-label{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.q-field{display:flex;align-items:center;gap:10px;height:62px;padding:0 10px 0 18px;border:1px solid var(--line);border-radius:16px;background:var(--bg);transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+.q-field:focus-within{border-color:var(--up);box-shadow:0 0 0 4px var(--up-tint)}
+.trade[data-side="sell"] .q-field:focus-within{border-color:var(--down);box-shadow:0 0 0 4px var(--down-tint)}
+.q-field input{flex:1;min-width:0;border:0;background:transparent;outline:none;color:var(--ink);font:700 24px 'Space Mono',monospace;font-variant-numeric:tabular-nums}
+.q-field input::placeholder{color:var(--muted);opacity:.6}
+.q-sym{font-size:14px;font-weight:600;color:var(--muted)}
+.max{border:0;border-radius:999px;padding:9px 18px;font:600 13px 'Sora',sans-serif;background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(15,23,42,.16);cursor:pointer;transition:transform var(--t-fast),opacity var(--t-fast)}
+.max:active:not(:disabled){transform:scale(.95)}
+.max:disabled{opacity:.45;cursor:not-allowed}
+.q-sum{margin-top:16px}
+.q-line{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 14px;padding:15px 18px;border-radius:16px;font-size:16px}
+.q-line b{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.trade[data-side="buy"] .q-line{background:var(--up-tint)}
+.trade[data-side="sell"] .q-line{background:var(--down-tint)}
+.q-empty{padding:15px 18px;border-radius:16px;border:1px dashed var(--line);color:var(--muted);font-size:15px}
+.q-warn{display:flex;align-items:flex-start;gap:10px;margin-top:10px;font-size:14px}
+.q-warn i{flex:none;width:20px;height:20px;border-radius:50%;background:#F59E0B;color:#1F2937;font:700 13px 'Sora',sans-serif;font-style:normal;display:grid;place-items:center}
+.order{width:100%;height:54px;margin-top:16px;border:0;border-radius:999px;color:#fff;font:600 16px 'Sora',sans-serif;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast),opacity var(--t-fast)}
+.trade[data-side="buy"] .order{background:#15803D}
+.trade[data-side="buy"] .order:hover:not(:disabled){background:#166534}
+.trade[data-side="sell"] .order{background:#DC2626}
+.trade[data-side="sell"] .order:hover:not(:disabled){background:#B91C1C}
+.order:active:not(:disabled){transform:scale(.985)}
+.order:disabled{opacity:.4;cursor:not-allowed}
+
+/* Confirmation sheet */
+dialog#confirm{margin:auto;border:0;padding:0;background:transparent;color:var(--ink);width:calc(100% - 32px);max-width:420px;overflow:visible}
+dialog#confirm::backdrop{background:rgba(15,23,42,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+dialog#confirm[open]{animation:pop-in var(--t-base) var(--ease)}
+dialog#confirm[open]::backdrop{animation:fade var(--t-base) ease-out}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:0 24px 64px rgba(15,23,42,.28)}
+.grab{display:none}
+.sheet h2{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:18px}
+.cf-coin{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.cf-coin .ico{width:44px;height:44px;font-size:16px}
+.cf-coin .nm{font-weight:600}
+.cf-tag{margin-left:auto;font:700 12px 'Sora',sans-serif;letter-spacing:.06em;padding:5px 12px;border-radius:999px}
+.cf-tag.buy{color:var(--up-text);background:var(--up-tint)}
+.cf-tag.sell{color:var(--down-text);background:var(--down-tint)}
+.cf-rows{margin:0 0 14px;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.cf-rows>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.cf-rows>div:last-child{border-bottom:0;background:var(--bg)}
+.cf-rows dt{color:var(--muted);font-size:14px}
+.cf-rows dd{margin:0;font-weight:700;font-size:15px;text-align:right}
+.cf-rows .total dd{font-size:22px;letter-spacing:-.02em}
+.cf-note{display:flex;align-items:flex-start;gap:8px;margin:0 0 20px;font-size:13.5px;color:var(--muted)}
+.cf-note svg{flex:none;width:16px;height:16px;margin-top:2px}
+.cf-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:12px}
+.cf-actions button{height:52px;border:0;border-radius:999px;font:600 15px 'Sora',sans-serif;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast),opacity var(--t-fast)}
+.cf-actions button:active:not(:disabled){transform:scale(.97)}
+.cf-cancel{background:var(--bg);color:var(--ink)}
+.cf-cancel:hover{background:var(--line)}
+.cf-ok{background:#15803D;color:#fff}
+.cf-ok:hover:not(:disabled){background:#166534}
+.cf-ok.sell{background:#DC2626}
+.cf-ok.sell:hover:not(:disabled){background:#B91C1C}
+.cf-ok:disabled{opacity:.4;cursor:not-allowed}
+@keyframes sheet-up{from{opacity:0;transform:translateY(48px)}}
+@media (max-width:620px){
+  dialog#confirm{width:100%;max-width:none;margin:auto 0 0}
+  dialog#confirm[open]{animation:sheet-up 280ms var(--ease)}
+  .sheet{border-radius:24px 24px 0 0;border-bottom:0;padding:10px 20px calc(20px + env(safe-area-inset-bottom))}
+  .grab{display:block;width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 18px}
+}
+
+/* Toast */
+#toasts{position:fixed;left:0;right:0;bottom:max(20px,env(safe-area-inset-bottom));z-index:60;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 16px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:12px;max-width:100%;padding:12px 18px 12px 12px;border-radius:16px;background:var(--ink);color:var(--surface);font-size:15px;font-weight:500;box-shadow:0 12px 32px rgba(15,23,42,.28);animation:toast-in var(--t-base) var(--ease)}
+.toast i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--up);display:grid;place-items:center}
+.toast svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.toast.out{opacity:0;transform:translateY(8px);transition:opacity 250ms,transform 250ms}
+@keyframes toast-in{from{opacity:0;transform:translateY(14px) scale(.98)}}
+
+@media (max-width:620px){
+  .trade{padding:18px 16px 20px}
+  .seg{width:100%}
+  .stats{grid-template-columns:1fr;gap:12px}
+  .chart-card{padding:16px 16px 10px}
+  .tabs button{padding:7px 16px}
+}
+
+/* "?" help button */
+.help{margin-left:8px;width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  font:600 15px 'Sora',sans-serif;cursor:pointer;display:grid;place-items:center;box-shadow:var(--shadow);transition:color var(--t-fast),border-color var(--t-fast),transform var(--t-fast)}
+.help:hover{color:var(--ink);border-color:var(--up)}
+.help:active{transform:scale(.92)}
+.cash{transition:box-shadow var(--t-base) var(--ease),border-color var(--t-base)}
+.cash.land{animation:land 700ms var(--ease)}
+@keyframes land{0%{transform:scale(1)}35%{transform:scale(1.08);border-color:var(--up);box-shadow:0 0 0 6px var(--up-tint),var(--shadow)}100%{transform:scale(1)}}
+
+/* Welcome modal */
+dialog#welcome{margin:auto;border:0;padding:0;background:transparent;color:var(--ink);width:calc(100% - 32px);max-width:420px;overflow:visible}
+dialog#welcome::backdrop{background:rgba(15,23,42,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+dialog#welcome[open]{animation:pop-in var(--t-base) var(--ease)}
+dialog#welcome[open]::backdrop{animation:fade var(--t-base) ease-out}
+@keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.97)}}
+@keyframes fade{from{opacity:0}}
+.w-panel{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:32px 28px 28px;text-align:center;box-shadow:0 24px 64px rgba(15,23,42,.28)}
+.w-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:background var(--t-fast),color var(--t-fast)}
+.w-x:hover{background:var(--bg);color:var(--ink)}
+.w-x svg{width:16px;height:16px}
+.w-logo{width:44px;height:44px;border-radius:14px;background:var(--up);display:grid;place-items:center;margin:0 auto 16px}
+.w-logo svg{width:24px;height:24px}
+.w-panel h2{font-size:24px;font-weight:600;letter-spacing:-.025em;line-height:1.2;margin-bottom:10px}
+.w-panel p{color:var(--muted);font-size:15px;line-height:1.55;max-width:34ch;margin:0 auto}
+.w-acct{position:relative;margin:24px 0;padding:20px 16px 18px;border-radius:16px;background:var(--bg);border:1px solid var(--line)}
+.w-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.w-amt{display:block;font-size:clamp(32px,9vw,40px);font-weight:700;letter-spacing:-.02em;margin:6px 0 12px;line-height:1.1}
+.w-amt.pop{animation:amt-pop 420ms var(--ease)}
+@keyframes amt-pop{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+.w-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--up-text);background:var(--up-tint);border-radius:999px;padding:5px 12px;opacity:0;transform:translateY(6px)}
+.w-chip svg{width:14px;height:14px;stroke:var(--up);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.w-chip.show{opacity:1;transform:none;transition:opacity var(--t-base) var(--ease),transform var(--t-base) var(--ease)}
+.w-burst{position:absolute;left:50%;top:44%;width:0;height:0;pointer-events:none}
+.w-burst i{position:absolute;left:0;top:0;border-radius:2px;opacity:0;animation:conf 1000ms cubic-bezier(.15,.7,.3,1) forwards}
+@keyframes conf{0%{opacity:1;transform:translate(0,0) rotate(0) scale(.5)}60%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1)}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 70px)) rotate(var(--r)) scale(1)}}
+.w-go{width:100%;height:50px;border:0;border-radius:999px;background:#15803D;color:#fff;font:600 16px 'Sora',sans-serif;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast)}
+.w-go:hover{background:#166534}
+.w-go:active{transform:scale(.98)}
+.foot{margin-top:16px;font-size:13px;color:var(--muted);text-align:center}
+
+@media (max-width:620px){
+  .nav a.link{padding:8px 8px;font-size:13px}
+  .cash small{display:none}
+  .head,.row{grid-template-columns:minmax(0,1fr) auto auto;gap:10px;padding:0 16px}
+  .head span:nth-child(2){display:none}
+  .price{font-size:14px}
+  .spark{display:none}
+  .coin{gap:8px}
+  .ico{width:34px;height:34px;font-size:12px}
+  .nm{font-size:14px}
+  .chg{font-size:12px;padding:4px 8px;gap:4px}
+  .head,.row{gap:8px}
+  .logo span{display:none}
+}
+@media (max-width:420px){.nav{gap:2px;padding:0 10px}.nav a.link{padding:8px 6px;font-size:12.5px}.help{width:30px;height:30px;margin-left:4px;font-size:13px}.cash{margin-left:4px;padding:6px 10px;font-size:12.5px}.logo i{width:28px;height:28px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav" aria-label="Primary">
+    <a class="logo" href="#/"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-5 4 4 7-8"/></svg></i><span>CoinLab</span></a>
+    <a class="link" href="#/" data-nav="market" aria-current="page">Market</a>
+    <a class="link" href="#/portfolio" data-nav="portfolio">Portfolio</a>
+    <a class="link" href="#/history" data-nav="history">History</a>
+    <button class="help" id="helpBtn" type="button" aria-label="How CoinLab works" title="How CoinLab works" aria-haspopup="dialog">?</button>
+    <div class="cash" title="Practice cash balance"><small>Cash</small><span class="num" id="cash">$10,000.00</span></div>
+  </nav>
+</header>
+
+<main>
+  <div id="viewMarket">
+  <div class="hero">
+    <div>
+      <h1>Market</h1>
+      <p class="sub">Real, live prices. Practice money. Learn the market without risking a cent.</p>
+    </div>
+    <div class="status" id="status" role="status"><span class="dot"></span><span id="statusText">Connecting…</span></div>
+  </div>
+
+  <label class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Search coins by name or symbol" autocomplete="off" aria-label="Search coins">
+  </label>
+
+  <section class="sec" aria-labelledby="wl-h">
+    <div class="sec-h"><h2 id="wl-h">Watchlist</h2><span id="wlCount"></span></div>
+    <div class="card"><div id="wl"></div></div>
+  </section>
+
+  <section class="sec" aria-labelledby="mk-h">
+    <div class="sec-h"><h2 id="mk-h">All coins</h2><span id="mkCount"></span></div>
+    <div class="card">
+      <div class="head"><span>Coin</span><span>24h trend</span><span>Price</span><span>24h</span></div>
+      <div id="list"></div>
+    </div>
+  </section>
+  <p class="foot">Simulated trading only. Prices from CoinGecko, refreshed every 30 seconds.</p>
+  </div>
+  <div id="viewCoin" hidden></div>
+  <div id="viewPortfolio" hidden></div>
+  <div id="viewHistory" hidden></div>
+  <div id="viewReceipt" hidden></div>
+</main>
+
+<dialog id="welcome" aria-labelledby="w-title" aria-describedby="w-copy">
+  <div class="w-panel">
+    <button class="w-x" type="button" id="wClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="w-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-5 4 4 7-8"/></svg></div>
+    <h2 id="w-title">Welcome to CoinLab</h2>
+    <p id="w-copy">CoinLab is a practice simulator: you trade at real, live crypto prices using fake money. Everyone starts with $10,000, and nothing here can ever cost you a cent.</p>
+    <div class="w-acct">
+      <div class="w-label">Practice account</div>
+      <span class="w-amt num" id="wAmt" aria-live="off">$10,000.00</span>
+      <span class="w-chip" id="wChip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Starting cash added</span>
+      <div class="w-burst" id="wBurst" aria-hidden="true"></div>
+    </div>
+    <button class="w-go" type="button" id="wGo" autofocus>Start trading</button>
+  </div>
+</dialog>
+
+<dialog id="confirm" aria-labelledby="cf-title" aria-describedby="cf-note">
+  <div class="sheet">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="cf-title">Confirm purchase</h2>
+    <div class="cf-coin"><span class="ico" id="cfIco" aria-hidden="true"></span>
+      <div><div class="nm" id="cfName"></div><div class="sym" id="cfSym"></div></div>
+      <span class="cf-tag" id="cfTag"></span></div>
+    <dl class="cf-rows">
+      <div><dt>Quantity</dt><dd class="num" id="cfQty"></dd></div>
+      <div><dt>Price</dt><dd class="num" id="cfPrice"></dd></div>
+      <div class="total"><dt id="cfTotalL">You’ll pay</dt><dd class="num" id="cfTotal"></dd></div>
+    </dl>
+    <div id="cfWarn" aria-live="polite"></div>
+    <p class="cf-note" id="cf-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Price may move slightly before you confirm.</p>
+    <div class="cf-actions"><button type="button" class="cf-cancel" id="cfCancel">Cancel</button><button type="button" class="cf-ok" id="cfOk" autofocus>Confirm</button></div>
+  </div>
+</dialog>
+<div id="toasts" role="status" aria-live="polite"></div>
+<div id="party" class="party" aria-hidden="true"></div>
+
+<script>
+const COINS = [
+  ['bitcoin','Bitcoin','BTC','#F7931A',67000,1.2],['ethereum','Ethereum','ETH','#627EEA',2600,-0.8],
+  ['tether','Tether','USDT','#26A17B',1,0.01],['solana','Solana','SOL','#9945FF',165,3.4],
+  ['binancecoin','BNB','BNB','#D69E00',590,0.4],['ripple','XRP','XRP','#23292F',0.52,-1.6],
+  ['dogecoin','Dogecoin','DOGE','#C2A633',0.14,2.1],['cardano','Cardano','ADA','#0033AD',0.45,-0.3],
+  ['avalanche-2','Avalanche','AVAX','#E84142',28,1.7],['chainlink','Chainlink','LINK','#2A5ADA',14,-2.2]
+];
+const state = {}; // id -> {price, chg, img}
+COINS.forEach(c => state[c[0]] = {price:c[4], chg:c[5], img:null, live:false});
+
+const hasPrice = id => Number.isFinite(state[id].price) && state[id].price > 0;   // false → "price unavailable" states
+const dirOf = chg => Number.isFinite(chg) ? (chg >= 0 ? 'up' : 'down') : 'na';
+const fmtUSD = n => {
+  // >= $1 → 2 decimals with thousands separators; < $1 → 4 decimals (6 if < $0.01); anything non-numeric → "—"
+  if (!Number.isFinite(n)) return '—';
+  const d = n >= 1 ? 2 : n >= 0.01 ? 4 : 6;
+  return '$' + n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+};
+const fmtPct = n => Math.abs(n).toFixed(2) + '%';
+const sign = n => n >= 0 ? '+' : '−';
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const START = 10000;
+let BAL = START;
+try { const c = parseFloat(localStorage.getItem('coinlab.cash')); if (isFinite(c)) BAL = c; } catch(e){}
+const fmtCash = n => !Number.isFinite(n) ? '—' : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+document.getElementById('cash').textContent = fmtCash(BAL);
+
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9 6.7 19.7l1.1-5.9L3.5 9.7l5.9-.8z"/></svg>';
+let watch = [];
+try { watch = JSON.parse(localStorage.getItem('coinlab.watchlist')) || []; } catch(e){}
+const saveWatch = () => { try { localStorage.setItem('coinlab.watchlist', JSON.stringify(watch)); } catch(e){} };
+
+const $ = id => document.getElementById(id);
+const list = $('list'), wl = $('wl'), q = $('q');
+const esc = t => t.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---- Sparkline: FAKE data for now. Lesson 6's backend will supply real 24h history. ----
+const HISTORY = {};
+function fakeHistory(id, up, mag){
+  let h = 0; for (const ch of id) h = (h*31 + ch.charCodeAt(0)) >>> 0;   // seeded, so each coin's line is stable
+  const rnd = () => (h = (h + 0x6D2B79F5) >>> 0, (Math.imul(h ^ h>>>15, 1|h) >>> 0) / 4294967296);
+  const n = 24, drift = (up?1:-1) * (0.6 + Math.min(mag,6)/6) / n * 10, out = [50];
+  for (let i=1;i<n;i++) out.push(out[i-1] + drift + (rnd()-.5)*5);
+  if (up ? out[n-1] <= out[0] : out[n-1] >= out[0]) out[n-1] = out[0] + (up?3:-3);  // always end the way the 24h % says
+  return out;
+}
+function sparkInner(id){
+  if (!Number.isFinite(state[id].chg)) return `<svg viewBox="0 0 96 32" aria-hidden="true" focusable="false"><path class="line" d="M0 16H96" stroke-dasharray="3 5"/></svg>`;   // no data: flat dashed line
+  const s = state[id], up = s.chg >= 0, mag = Math.round(Math.abs(s.chg));
+  const c = HISTORY[id];
+  if (!c || c.up !== up || c.mag !== mag) HISTORY[id] = {up, mag, data: fakeHistory(id, up, mag)};
+  const d = HISTORY[id].data, W = 96, H = 32, pad = 3;
+  const lo = Math.min(...d), span = (Math.max(...d) - lo) || 1;
+  const xy = d.map((v,i) => [(i/(d.length-1))*W, pad + (1-(v-lo)/span)*(H-pad*2)]);
+  const line = xy.map((p,i) => (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+  const end = xy[xy.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path class="area" d="${line}L${W} ${H}L0 ${H}Z"/><path class="line" d="${line}" vector-effect="non-scaling-stroke"/>
+    <circle cx="${end[0].toFixed(1)}" cy="${end[1].toFixed(1)}" r="2.25"/></svg>`;
+}
+
+const chgSpan = chg => Number.isFinite(chg)
+  ? `<span class="chg num ${chg>=0?'up':'down'}" aria-label="${chg>=0?'Up':'Down'} ${fmtPct(chg)} in 24 hours"><b aria-hidden="true">${chg>=0?'▲':'▼'}</b>${sign(chg)}${fmtPct(chg)}</span>`
+  : `<span class="chg num na" aria-label="24 hour change unavailable">—</span>`;
+
+function rowHTML([id,name,sym,color], i, enter){
+  const s = state[id], on = watch.includes(id);
+  const icon = s.img ? `<img src="${s.img}" alt="" loading="lazy" onerror="this.remove()">` : sym[0];
+  return `<div class="row${enter?' enter':''}" data-id="${id}" style="--i:${i};--c:${color}">
+    <div class="coin">
+      <button class="star" type="button" data-star="${id}" aria-pressed="${on}" aria-label="${on?'Remove':'Add'} ${name} ${on?'from':'to'} watchlist">${STAR}</button>
+      <span class="ico" aria-hidden="true">${icon}</span>
+      <div style="min-width:0"><div class="nm"><a class="rowlink" href="#/coin/${id}">${name}</a></div><div class="sym">${sym}</div></div></div>
+    <div class="spark ${dirOf(s.chg)}">${sparkInner(id)}</div>
+    <div class="price num${hasPrice(id)?'':' na'}">${fmtUSD(s.price)}</div>
+    <div class="chg-wrap">${chgSpan(s.chg)}</div>
+  </div>`;
+}
+const emptyHTML = (title, text, star) => `<div class="empty">${star?`<div class="em-ico">${STAR}</div>`:''}<strong>${title}</strong>${text}</div>`;
+
+// Shimmer placeholder row — mirrors the real row's columns so nothing jumps when data arrives.
+const skRow = () => `<div class="row sk-row" aria-hidden="true">
+  <div class="sk-coin"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-lines"><span class="sk" style="width:96px;height:12px"></span><span class="sk" style="width:44px;height:10px"></span></div></div>
+  <div class="spark"><span class="sk" style="width:96px;height:22px;margin-top:5px"></span></div>
+  <div style="justify-self:end"><span class="sk" style="width:84px;height:14px"></span></div>
+  <div style="justify-self:end"><span class="sk" style="width:72px;height:26px;border-radius:999px"></span></div>
+</div>`;
+const WL_EMPTY = emptyHTML('Star a coin to pin it here', 'Tap the star on any coin below to keep it within reach.', true);
+
+let first = true, loading = true;
+function render(){
+  wl.parentElement.setAttribute('aria-busy', loading); list.parentElement.setAttribute('aria-busy', loading);
+  if (loading){
+    wl.innerHTML = watch.length ? skRow().repeat(watch.length) : WL_EMPTY;
+    list.innerHTML = skRow().repeat(COINS.length);
+    return;
+  }
+  const term = q.value.trim().toLowerCase();
+  const match = c => !term || c[1].toLowerCase().includes(term) || c[2].toLowerCase().includes(term);
+  const all = COINS.filter(match);
+  const starred = COINS.filter(c => watch.includes(c[0])).filter(match);
+
+  $('wlCount').textContent = watch.length ? `${watch.length} starred` : '';
+  $('mkCount').textContent = term ? `${all.length} of ${COINS.length}` : '';
+
+  wl.innerHTML = !watch.length ? WL_EMPTY
+    : starred.length ? starred.map((c,i)=>rowHTML(c,i,first)).join('')
+    : emptyHTML('No starred coins match', `Nothing in your watchlist matches “${esc(q.value.trim())}”.`, false);
+
+  list.innerHTML = all.length ? all.map((c,i)=>rowHTML(c,i,first)).join('')
+    : emptyHTML('No coins found', `Nothing matches “${esc(q.value.trim())}”. Try a name like Bitcoin or a symbol like BTC.`, false);
+  first = false;
+}
+render();
+setTimeout(() => { loading = false; render(); }, 600);   // simulated network latency
+
+q.addEventListener('input', render);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-star]'); if(!b) return;
+  const id = b.dataset.star, inCoin = !!b.closest('#viewCoin');
+  watch = watch.includes(id) ? watch.filter(x=>x!==id) : [...watch, id];
+  saveWatch(); render();
+  if (inCoin){                       // keep focus on the detail-page star and just flip its state
+    const on = watch.includes(id), nm = COINS.find(c=>c[0]===id)[1];
+    b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', `${on?'Remove':'Add'} ${nm} ${on?'from':'to'} watchlist`);
+  } else document.querySelector(`#list [data-star="${id}"]`)?.focus();
+});
+
+function update(prev){
+  COINS.forEach(([id])=>{
+    document.querySelectorAll(`[data-id="${id}"]`).forEach(row=>{
+      const s = state[id], p = row.querySelector('.price');
+      if (Number.isFinite(prev[id]) && Number.isFinite(s.price) && prev[id] !== s.price){
+        p.classList.remove('flash-up','flash-down'); void p.offsetWidth;
+        p.classList.add(s.price > prev[id] ? 'flash-up':'flash-down');
+      }
+      p.textContent = fmtUSD(s.price); p.classList.toggle('na', !hasPrice(id));
+      const sp = row.querySelector('.spark');
+      if (sp){ sp.className = 'spark ' + dirOf(s.chg); sp.innerHTML = sparkInner(id); }
+      row.querySelector('.chg-wrap').innerHTML = chgSpan(s.chg);
+      if (s.img && !row.querySelector('.ico img')) row.querySelector('.ico').innerHTML = `<img src="${s.img}" alt="" onerror="this.remove()">`;
+    });
+  });
+  if (coinId) refreshCoin();
+  if (curView === 'portfolio') paintPortfolio();
+}
+
+// ================= Coin detail page (hash route: #/coin/<id>) =================
+const viewMarket = $('viewMarket'), viewCoin = $('viewCoin'), viewPortfolio = $('viewPortfolio'), viewHistory = $('viewHistory'), viewReceipt = $('viewReceipt');
+let curView = 'market', pfStop = () => {}, pfCounting = false;
+let coinId = null, range = '1D', lastScroll = 0, cur = null, geo = null, lastW = 0, side = 'buy', qtyStr = '', shownOk = true, retried = false;
+
+// PLACEHOLDER stats: [circulating supply, 24h volume as a share of market cap]. Real figures arrive with the backend.
+const META = {
+  bitcoin:[19.8e6,.022], ethereum:[120.4e6,.035], tether:[118e9,.06], solana:[470e6,.04], binancecoin:[145e6,.012],
+  ripple:[57e9,.03], dogecoin:[146e9,.045], cardano:[36e9,.03], 'avalanche-2':[410e6,.03], chainlink:[626e6,.028]
+};
+const compact = new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2});
+const fmtBig = n => '$' + compact.format(n);
+const statVals = id => { const [sup, vr] = META[id], mcap = state[id].price * sup, ok = hasPrice(id); return {mcap: ok ? fmtBig(mcap) : '—', vol: ok ? fmtBig(mcap * vr) : '—', sup: compact.format(sup)}; };
+
+// FAKE chart history (1D / 7D / 30D). Seeded per coin+range so it's stable; always ends at the current price.
+const RANGES = {'1D':{n:24, step:3600e3, vol:1, label:'past 24 hours'}, '7D':{n:28, step:6*3600e3, vol:1.7, label:'past 7 days'}, '30D':{n:30, step:86400e3, vol:2.6, label:'past 30 days'}};
+const hashStr = s => { let h = 2166136261; for (const c of s){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const mulberry = a => () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ a>>>15, 1|a); t = (t + Math.imul(t ^ t>>>7, 61|t)) ^ t; return ((t ^ t>>>14) >>> 0) / 4294967296; };
+function series(id, r){
+  const cfg = RANGES[r], s = state[id], rnd = mulberry(hashStr(id + r)), n = cfg.n, stable = id === 'tether';
+  const target = r === '1D' ? s.chg : stable ? (rnd()-.5)*.12 : r === '7D' ? s.chg*1.5 + (rnd()-.5)*8 : (rnd()-.5)*34;
+  let b = [0]; for (let i = 1; i < n; i++) b.push(b[i-1] + rnd() - .5);
+  b = b.map((v,i) => v - b[n-1]*i/(n-1));                       // bridge: noise starts and ends at 0
+  const mx = Math.max(...b.map(Math.abs)) || 1, amp = (stable ? .03 : 1.4) * cfg.vol;
+  const start = s.price / (1 + target/100), now = Date.now();
+  const pts = b.map((v,i) => ({t: now - (n-1-i)*cfg.step, v: start * (1 + target/100*(i/(n-1)) + v/mx*amp/100)}));
+  return {pts, pct: (pts[n-1].v / pts[0].v - 1) * 100};
+}
+const axisUSD = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:n>=1000?0:n>=1?2:4, maximumFractionDigits:n>=1000?0:n>=1?2:4});
+const axisT = (t,r) => r === '1D' ? new Date(t).toLocaleTimeString('en-US',{hour:'numeric'}) : new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const tipT = (t,r) => r === '30D' ? new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const chipHTML = (pct, txt) => { const up = pct >= 0; if (!Number.isFinite(pct)) return `<span class="chg num na">—</span>${txt?`<span class="note">${txt}</span>`:''}`; return `<span class="chg num ${up?'up':'down'}"><b aria-hidden="true">${up?'▲':'▼'}</b>${sign(pct)}${fmtPct(pct)}</span>${txt?`<span class="note">${txt}</span>`:''}`; };
+
+function renderCoin(){
+  const c = COINS.find(x => x[0] === coinId);
+  if (!c){
+    viewCoin.innerHTML = `<a class="back" href="#/">← Market</a><div class="card">${emptyHTML('Coin not found', 'We don’t list that coin yet. Head back to the market to pick another.', false)}</div>`;
+    document.title = 'Not found — CoinLab'; return;
+  }
+  const [id, name, sym, color] = c, s = state[id], on = watch.includes(id), st = statVals(id);
+  document.title = `${name} — CoinLab`;
+  shownOk = hasPrice(id); cur = null; ro && ro.disconnect();
+  if (!shownOk){                                   // no usable price: say so clearly instead of an empty chart / broken form
+    viewCoin.innerHTML = `
+    <a class="back" href="#/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Market</a>
+    <div class="c-head" style="--c:${color}">
+      <span class="ico" id="cIco" aria-hidden="true">${s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : sym[0]}</span>
+      <div><h1 id="cName" tabindex="-1">${name}</h1><div class="sym">${sym}</div></div>
+      <button class="star" type="button" data-star="${id}" aria-pressed="${on}" aria-label="${on?'Remove':'Add'} ${name} ${on?'from':'to'} watchlist">${STAR}</button>
+    </div>
+    <div class="c-price"><span class="big num na" id="cPrice">—</span><span class="chg na">Price unavailable</span></div>
+    <section class="card unavail" role="status" aria-label="Price unavailable">
+      <div class="un-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></div>
+      <h2>Price unavailable</h2>
+      <p>We couldn’t get a live price for ${name} right now, so the chart and trading are paused. Nothing in your account has changed.</p>
+      <button class="retry" id="retryBtn" type="button" data-retry>Try again</button>
+      <div class="un-note" id="retryNote">${retried ? 'Still unavailable. Check your connection and try again in a moment.' : ''}</div>
+    </section>
+    <section class="stats" aria-label="Key stats">
+      <div class="stat"><div class="l">Market cap</div><span class="v num na">—</span><div class="h">Needs a live price</div></div>
+      <div class="stat"><div class="l">24h volume</div><span class="v num na">—</span><div class="h">Needs a live price</div></div>
+      <div class="stat"><div class="l">Circulating supply</div><span class="v num">${st.sup} ${sym}</span><div class="h">Coins in circulation</div></div>
+    </section>`;
+    return;
+  }
+  retried = false;
+  viewCoin.innerHTML = `
+    <a class="back" href="#/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Market</a>
+    <div class="c-head" style="--c:${color}">
+      <span class="ico" id="cIco" aria-hidden="true">${s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : sym[0]}</span>
+      <div><h1 id="cName" tabindex="-1">${name}</h1><div class="sym">${sym}</div></div>
+      <button class="star" type="button" data-star="${id}" aria-pressed="${on}" aria-label="${on?'Remove':'Add'} ${name} ${on?'from':'to'} watchlist">${STAR}</button>
+    </div>
+    <div class="c-price"><span class="big num" id="cPrice" data-v="${s.price}">${fmtUSD(s.price)}</span><span id="cChg">${chipHTML(s.chg)}<span class="note">&nbsp;24h</span></span></div>
+    <section class="card chart-card" aria-label="Price chart">
+      <div class="chart-top">
+        <div class="readout" id="readout"></div>
+        <div class="tabs" role="tablist" aria-label="Chart range">${Object.keys(RANGES).map(r => `<button role="tab" type="button" data-range="${r}" aria-selected="${r===range}" tabindex="${r===range?0:-1}">${r}</button>`).join('')}</div>
+      </div>
+      <div class="chart" id="chart" tabindex="0" role="img"></div>
+    </section>
+    <section class="card trade" id="trade" data-side="${side}" aria-label="Trade ${name}">
+      <div class="trade-top">
+        <div class="seg" id="seg" role="radiogroup" aria-label="Order type">
+          <button type="button" role="radio" class="buy" data-side="buy" aria-checked="${side==='buy'}" tabindex="${side==='buy'?0:-1}">Buy</button>
+          <button type="button" role="radio" class="sell" data-side="sell" aria-checked="${side==='sell'}" tabindex="${side==='sell'?0:-1}">Sell</button>
+        </div>
+        <div class="q-meta" id="qMeta"></div>
+      </div>
+      <label class="q-label" for="qty">Quantity</label>
+      <div class="q-field">
+        <input id="qty" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${qtyStr}" aria-describedby="qSum">
+        <span class="q-sym">${sym}</span>
+        <button class="max" type="button" id="maxBtn">Max</button>
+      </div>
+      <div class="q-sum" id="qSum" aria-live="polite"></div>
+      <button class="order" id="orderBtn" type="button" disabled>${side==='buy'?'Buy':'Sell'} ${sym}</button>
+    </section>
+    <section class="stats" aria-label="Key stats">
+      <div class="stat"><div class="l">Market cap</div><span class="v num" id="stMcap">${st.mcap}</span><div class="h">Price × circulating supply</div></div>
+      <div class="stat"><div class="l">24h volume</div><span class="v num" id="stVol">${st.vol}</span><div class="h">Traded in the last day</div></div>
+      <div class="stat"><div class="l">Circulating supply</div><span class="v num">${st.sup} ${sym}</span><div class="h">Coins in circulation</div></div>
+    </section>
+    <p class="foot">Chart history and stats are placeholder data for now.</p>`;
+  const host = $('chart');
+  host.addEventListener('pointermove', e => { if (!cur) return; const r = host.getBoundingClientRect(); scrubTo(Math.round((e.clientX - r.left) / (geo.W - geo.padR) * (cur.pts.length - 1))); });
+  host.addEventListener('pointerleave', scrubOff);
+  host.addEventListener('blur', scrubOff);
+  host.addEventListener('keydown', e => {
+    if (!cur) return; const k = e.key, last = cur.pts.length - 1;
+    if (k === 'ArrowLeft' || k === 'ArrowRight'){ e.preventDefault(); const i = host.dataset.i === undefined ? last : +host.dataset.i; scrubTo(i + (k === 'ArrowRight' ? 1 : -1)); }
+    else if (k === 'Escape') scrubOff();
+  });
+  ro && (ro.disconnect(), ro.observe(host));
+  drawChart(true);
+  bindTrade(); updateTrade();
+}
+
+// ---- Buy / Sell form: quantity × live price. (No order is placed yet — this is the calculator half.) ----
+let holdings = {};   // coin id -> quantity held. Written by trading later; read from localStorage now.
+try { holdings = JSON.parse(localStorage.getItem('coinlab.holdings')) || {}; } catch(e){}
+let costs = {};      // coin id -> total USD paid for what you currently hold (avg buy price = cost / quantity). Missing = unknown.
+try { costs = JSON.parse(localStorage.getItem('coinlab.costs')) || {}; } catch(e){}
+let trades = [];     // every completed order, newest first: {id, side, q, p, total, t}. Lesson 7's backend will own this later.
+try { const t = JSON.parse(localStorage.getItem('coinlab.trades')); if (Array.isArray(t)) trades = t; } catch(e){}
+let traded = Object.values(holdings).some(q => q > 0);   // has a trade ever happened? (anyone already holding coins counts as yes)
+try { traded = traded || localStorage.getItem('coinlab.traded') === '1'; } catch(e){}
+const fmtQty = n => n.toLocaleString('en-US', {maximumFractionDigits: 8});
+const trimQty = n => n.toFixed(8).replace(/\.?0+$/, '');
+const maxQty = () => side === 'buy' ? (hasPrice(coinId) ? Math.floor(BAL / state[coinId].price * 1e8) / 1e8 : 0) : (holdings[coinId] || 0);
+
+function updateTrade(){
+  const sec = $('trade'); if (!sec || !coinId) return;
+  const sym = COINS.find(c => c[0] === coinId)[2], p = state[coinId].price, q = parseFloat(qtyStr) || 0, max = maxQty(), held = holdings[coinId] || 0;
+  sec.dataset.side = side;
+  const {total, over, tooSmall} = orderState(side, coinId, q);
+  const ob = $('orderBtn'); ob.disabled = !(q > 0) || over || tooSmall; ob.textContent = `${side === 'buy' ? 'Buy' : 'Sell'} ${sym}`;
+  $('qMeta').innerHTML = side === 'buy' ? `Available <b class="num">${fmtCash(BAL)}</b>` : `You hold <b class="num">${fmtQty(held)} ${sym}</b>`;
+  const mb = $('maxBtn'); mb.disabled = max <= 0;
+  mb.title = max > 0 ? (side === 'buy' ? 'Buy as much as your cash allows' : `Sell all ${fmtQty(held)} ${sym}`) : (side === 'buy' ? 'No cash available' : `You don’t hold any ${sym} yet`);
+  if (!(q > 0)){ $('qSum').innerHTML = `<div class="q-empty">Enter a quantity to see your total.</div>`; return; }
+  const warn = tooSmall && !over ? `<div class="q-warn"><i aria-hidden="true">!</i><span>The minimum order is <b class="num">$0.01</b>.</span></div>` : !over ? '' : side === 'buy'
+    ? `<div class="q-warn"><i aria-hidden="true">!</i><span>You need <b class="num">${fmtCash(Math.round((total - BAL) * 100) / 100)}</b> more cash to buy this much. ${max > 0 ? `With ${fmtCash(BAL)} you can buy up to <b class="num">${fmtQty(max)} ${sym}</b>.` : `Your cash balance is ${fmtCash(BAL)}.`}</span></div>`
+    : `<div class="q-warn"><i aria-hidden="true">!</i><span>${held > 0 ? `You only hold <b class="num">${fmtQty(held)} ${sym}</b>, so that’s the most you can sell. You’re trying to sell <b class="num">${fmtQty(q - held)} ${sym}</b> too many.` : `You don’t hold any ${sym}, so there’s nothing to sell yet.`}</span></div>`;
+  $('qSum').innerHTML = `<div class="q-line"><span>${side === 'buy' ? 'You’ll pay' : 'You’ll receive'} <b class="num">${fmtCash(total)}</b></span><span class="note num">${fmtQty(q)} × ${fmtUSD(p)}</span></div>${warn}`;
+}
+function setSide(s){
+  side = s;
+  document.querySelectorAll('#seg [data-side]').forEach(b => { const on = b.dataset.side === s; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
+  updateTrade();
+}
+function bindTrade(){
+  const inp = $('qty');
+  inp.addEventListener('input', () => {
+    let v = inp.value.replace(/[^\d.]/g, ''); const i = v.indexOf('.');
+    if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 8);   // one dot, max 8 decimals
+    if (v !== inp.value) inp.value = v;
+    qtyStr = v; updateTrade();
+  });
+  $('maxBtn').addEventListener('click', () => { const m = maxQty(); qtyStr = m > 0 ? trimQty(m) : ''; inp.value = qtyStr; updateTrade(); inp.focus(); });
+  $('orderBtn').addEventListener('click', openConfirm);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); const b = $('orderBtn'); if (!b.disabled) b.click(); } });
+  const seg = $('seg');
+  seg.addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (b) setSide(b.dataset.side); });
+  seg.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault(); const s = side === 'buy' ? 'sell' : 'buy'; setSide(s); seg.querySelector(`[data-side="${s}"]`).focus();
+  });
+}
+
+// ---- Orders: validate → confirmation sheet → execute (cash + holdings kept in localStorage until Lesson 7's backend) ----
+function orderState(sd, id, q){
+  const p = state[id].price, total = Math.round(q * p * 100) / 100, held = holdings[id] || 0;   // charged to the cent, exactly as shown
+  const noPrice = !hasPrice(id);        // never build an order from a missing price (total would be NaN)
+  return {p, total, held, noPrice, over: sd === 'buy' ? total > BAL + 1e-9 : q > held + 1e-9, tooSmall: q > 0 && total < 0.01};
+}
+const cfDlg = $('confirm');
+let cf = null;   // the order being confirmed: {side, id, q}
+function openConfirm(){
+  const q = parseFloat(qtyStr) || 0, st = orderState(side, coinId, q);
+  if (!(q > 0) || st.over || st.tooSmall || st.noPrice) return;
+  cf = {side, id: coinId, q}; renderConfirm(); cfDlg.showModal();
+}
+function renderConfirm(){            // re-run on every live price tick while the sheet is open, so what you see is what executes
+  const [id, name, sym, color] = COINS.find(c => c[0] === cf.id), s = state[id], buy = cf.side === 'buy', st = orderState(cf.side, id, cf.q);
+  $('cf-title').textContent = buy ? 'Confirm purchase' : 'Confirm sale';
+  const ico = $('cfIco'); ico.style.setProperty('--c', color); ico.innerHTML = s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : sym[0];
+  $('cfName').textContent = name; $('cfSym').textContent = sym;
+  const tag = $('cfTag'); tag.textContent = buy ? 'BUY' : 'SELL'; tag.className = 'cf-tag ' + cf.side;
+  $('cfQty').textContent = `${fmtQty(cf.q)} ${sym}`; $('cfPrice').textContent = fmtUSD(st.p);
+  $('cfTotalL').textContent = buy ? 'You’ll pay' : 'You’ll receive'; $('cfTotal').textContent = fmtCash(st.total);
+  const why = st.noPrice ? 'The price is unavailable right now. Try again in a moment.'
+    : st.over ? (buy ? `The price moved and you now need <b class="num">${fmtCash(Math.round((st.total - BAL) * 100) / 100)}</b> more cash for this order.` : `You no longer hold ${fmtQty(cf.q)} ${sym}.`) + ' Cancel and adjust the quantity.' : '';
+  $('cfWarn').innerHTML = why ? `<div class="q-warn" style="margin:0 0 14px"><i aria-hidden="true">!</i><span>${why}</span></div>` : '';
+  const ok = $('cfOk'); ok.textContent = buy ? 'Confirm buy' : 'Confirm sell'; ok.className = 'cf-ok ' + cf.side; ok.disabled = st.over || st.tooSmall || st.noPrice;
+}
+function showToast(html){
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>${html}</span>`;
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 4500);
+}
+function partyBurst(){                      // short confetti burst rising from just above the toast
+  const layer = $('party'), cols = ['#16A34A','#4ADE80','#F59E0B','#FDE68A','#94A3B8','#A855F7'];
+  for (let i = 0; i < 44; i++){
+    const el = document.createElement('i'), dx = (Math.random() - .5) * 560, dy = -(90 + Math.random() * 240);
+    el.style.cssText = `--dx:${dx.toFixed(0)}px;--dy:${dy.toFixed(0)}px;--r:${(Math.random()*720-360).toFixed(0)}deg;background:${cols[i % cols.length]};width:${5+Math.random()*5}px;height:${8+Math.random()*6}px;animation-delay:${(Math.random()*120).toFixed(0)}ms`;
+    layer.appendChild(el);
+  }
+  setTimeout(() => layer.replaceChildren(), 1900);
+}
+function celebrateFirstTrade(sd, q, sym, total){
+  const el = document.createElement('div'); el.className = 'toast first';
+  el.innerHTML = `<i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l2.1 6 6 2.1-6 2.1L12 19.2l-2.1-6L3.9 11.1l6-2.1z"/></svg></i>
+    <div class="t"><b class="h">First trade complete!</b><span>You ${sd === 'buy' ? 'bought' : 'sold'} <b class="num">${fmtQty(q)} ${sym}</b> for <b class="num">${fmtCash(total)}</b>. Nice start.</span><a href="#/portfolio">View your portfolio →</a></div>`;
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 8000);
+  if (!reduceMotion) partyBurst();
+}
+function executeOrder(){
+  if (!cf) return;
+  const {side: sd, id, q} = cf, st = orderState(sd, id, q); if (st.over || st.tooSmall || st.noPrice) return renderConfirm();
+  const sym = COINS.find(c => c[0] === id)[2], before = BAL, first = !traded;
+  if (sd === 'buy'){
+    BAL = Math.round((BAL - st.total) * 100) / 100; holdings[id] = +((holdings[id] || 0) + q).toFixed(8);
+    if (!(st.held > 0 && costs[id] === undefined)) costs[id] = Math.round(((costs[id] || 0) + st.total) * 100) / 100;   // (older holdings with no recorded cost stay "unknown")
+  } else {
+    BAL = Math.round((BAL + st.total) * 100) / 100; const left = +(st.held - q).toFixed(8);
+    if (left > 0){ holdings[id] = left; if (costs[id] !== undefined) costs[id] = Math.round(costs[id] * left / st.held * 100) / 100; }   // selling keeps the average price unchanged
+    else { delete holdings[id]; delete costs[id]; }
+  }
+  trades.unshift({id, side: sd, q, p: st.p, total: st.total, t: Date.now()}); trades.length = Math.min(trades.length, 500);   // newest first, capped
+  try { localStorage.setItem('coinlab.cash', String(BAL)); localStorage.setItem('coinlab.holdings', JSON.stringify(holdings)); localStorage.setItem('coinlab.costs', JSON.stringify(costs)); localStorage.setItem('coinlab.trades', JSON.stringify(trades)); } catch(e){}
+  cf = null; cfDlg.close();
+  tween(700, e => { cashEl.textContent = fmtCash(before + (BAL - before) * e); }, () => { cashEl.textContent = fmtCash(BAL); });
+  const pill = cashEl.parentElement; pill.classList.remove('land'); void pill.offsetWidth; pill.classList.add('land'); setTimeout(() => pill.classList.remove('land'), 800);
+  if (first){ traded = true; try { localStorage.setItem('coinlab.traded', '1'); } catch(e){} celebrateFirstTrade(sd, q, sym, st.total); }   // once, ever
+  else showToast(`${sd === 'buy' ? 'Bought' : 'Sold'} <b class="num">${fmtQty(q)} ${sym}</b> for <b class="num">${fmtCash(st.total)}</b>`);
+  qtyStr = ''; const inp = $('qty'); if (inp) inp.value = ''; updateTrade();
+}
+$('cfOk').addEventListener('click', executeOrder);
+$('cfCancel').addEventListener('click', () => cfDlg.close());
+cfDlg.addEventListener('click', e => { if (e.target === cfDlg) cfDlg.close(); });
+cfDlg.addEventListener('close', () => { cf = null; });
+
+function drawChart(animate){
+  const host = $('chart'); if (!host || !coinId || !hasPrice(coinId)) return;
+  const W = Math.round(host.clientWidth); if (!W) return; lastW = W;
+  cur = series(coinId, range);
+  const {pts, pct} = cur, n = pts.length, up = pct >= 0, label = RANGES[range].label;
+  const H = W < 520 ? 220 : 280, padR = W < 520 ? 56 : 66, padT = 12, padB = 26, innerW = W - padR;
+  const vs = pts.map(p => p.v), lo = Math.min(...vs), hi = Math.max(...vs), pad = (hi - lo) * .14 || hi * .001, y0 = lo - pad, y1 = hi + pad;
+  const X = i => i / (n-1) * innerW, Y = v => padT + (1 - (v - y0) / (y1 - y0)) * (H - padT - padB);
+  geo = {W, padR, X, Y};
+  const P = pts.map((p,i) => [X(i), Y(p.v)]), at = i => P[Math.max(0, Math.min(n-1, i))], f = v => v.toFixed(1);
+  let d = `M${f(P[0][0])} ${f(P[0][1])}`;
+  for (let i = 0; i < n-1; i++){ const a = at(i-1), b = P[i], c = P[i+1], e = at(i+2);
+    d += `C${f(b[0]+(c[0]-a[0])/6)} ${f(b[1]+(c[1]-a[1])/6)} ${f(c[0]-(e[0]-b[0])/6)} ${f(c[1]-(e[1]-b[1])/6)} ${f(c[0])} ${f(c[1])}`; }
+  const grid = [0,1,2,3].map(k => { const v = y0 + (y1-y0)*k/3, y = Y(v); return `<line class="gl" x1="0" x2="${innerW}" y1="${f(y)}" y2="${f(y)}"/><text class="ax" x="${W}" y="${f(y+4)}" text-anchor="end">${axisUSD(v)}</text>`; }).join('');
+  const xl = [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1].map((i,k) => `<text class="ax" x="${f(X(i))}" y="${H-6}" text-anchor="${k===0?'start':k===3?'end':'middle'}">${axisT(pts[i].t, range)}</text>`).join('');
+  host.querySelector('svg')?.remove();
+  host.insertAdjacentHTML('afterbegin', `<svg class="${up?'up':'down'}${animate?' draw':''}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${xl}
+    <path d="${d}L${f(innerW)} ${H-padB}L0 ${H-padB}Z" fill="url(#cg)"/>
+    <path class="ln" pathLength="1" d="${d}"/>
+    <g id="scrub" style="display:none"><line class="sl" y1="${padT}" y2="${H-padB}"/><circle class="sd" r="5"/></g></svg>`);
+  host.setAttribute('aria-label', `Price chart, ${label}: ${up?'up':'down'} ${fmtPct(pct)}, from ${fmtUSD(pts[0].v)} to ${fmtUSD(pts[n-1].v)}. Use left and right arrow keys to inspect values.`);
+  delete host.dataset.i;
+  $('readout').innerHTML = chipHTML(pct, label);
+}
+function scrubTo(i){
+  const host = $('chart'); if (!host || !cur) return;
+  i = Math.max(0, Math.min(cur.pts.length - 1, i)); host.dataset.i = i;
+  const p = cur.pts[i], x = geo.X(i), y = geo.Y(p.v), g = host.querySelector('#scrub');
+  g.style.display = ''; const ln = g.querySelector('line'), dot = g.querySelector('circle');
+  ln.setAttribute('x1', x); ln.setAttribute('x2', x); dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+  $('readout').innerHTML = `<span class="val num">${fmtUSD(p.v)}</span><span class="note">${tipT(p.t, range)}</span>`;
+}
+function scrubOff(){
+  const host = $('chart'); if (!host || !cur) return;
+  delete host.dataset.i; const g = host.querySelector('#scrub'); if (g) g.style.display = 'none';
+  $('readout').innerHTML = chipHTML(cur.pct, RANGES[range].label);
+}
+function setRange(r){
+  range = r;
+  viewCoin.querySelectorAll('[data-range]').forEach(b => { const on = b.dataset.range === r; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  drawChart(true);
+}
+viewCoin.addEventListener('click', e => {
+  const b = e.target.closest('[data-range]'); if (b) setRange(b.dataset.range);
+  if (e.target.closest('[data-retry]')) retryPrice();
+});
+async function retryPrice(){
+  const btn = $('retryBtn'); if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Retrying…'; $('retryNote').textContent = '';
+  await Promise.all([refresh(), new Promise(r => setTimeout(r, 500))]);   // refresh() re-renders the page itself if a price came back
+  if (coinId && !hasPrice(coinId)){ retried = true; renderCoin(); $('retryBtn')?.focus(); }
+}
+viewCoin.addEventListener('keydown', e => {
+  const b = e.target.closest('[data-range]'); if (!b || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+  const keys = Object.keys(RANGES), r = keys[(keys.indexOf(b.dataset.range) + (e.key === 'ArrowRight' ? 1 : -1) + keys.length) % keys.length];
+  e.preventDefault(); setRange(r); viewCoin.querySelector(`[data-range="${r}"]`).focus();
+});
+const ro = 'ResizeObserver' in window ? new ResizeObserver(() => { const h = $('chart'); if (h && Math.round(h.clientWidth) !== lastW) drawChart(false); }) : null;
+
+function refreshCoin(){                       // called after every live price update
+  const p = $('cPrice'); if (!p || !COINS.some(c => c[0] === coinId)) return;
+  if (hasPrice(coinId) !== shownOk){                 // a price appeared or disappeared: swap between the full page and the unavailable state
+    if (cfDlg.open) cfDlg.close();
+    renderCoin(); return;
+  }
+  if (!shownOk) return;
+  const s = state[coinId], prev = parseFloat(p.dataset.v), st = statVals(coinId);
+  if (prev !== s.price){ p.classList.remove('flash-up','flash-down'); void p.offsetWidth; p.classList.add(s.price > prev ? 'flash-up' : 'flash-down'); }
+  p.dataset.v = s.price; p.textContent = fmtUSD(s.price);
+  $('cChg').innerHTML = chipHTML(s.chg) + '<span class="note">&nbsp;24h</span>';
+  $('stMcap').textContent = st.mcap; $('stVol').textContent = st.vol;
+  const ico = $('cIco'); if (s.img && !ico.querySelector('img')) ico.innerHTML = `<img src="${s.img}" alt="" onerror="this.remove()">`;
+  if ($('chart').dataset.i === undefined) drawChart(false);
+  updateTrade();                              // the "You'll pay / receive" total follows the live price
+  if (cf && cfDlg.open) renderConfirm();
+}
+
+// ================= Portfolio (hash route: #/portfolio) =================
+// Value now = cash + holdings × live price. "Yesterday" is rebuilt from the 24h price moves of what you hold, so buying or
+// selling never shows up as a fake gain or loss — only market moves do.
+function pfStats(){
+  let hold = 0, move = 0, missing = 0;
+  for (const [id, qty] of Object.entries(holdings)){
+    if (!(qty > 0) || !state[id]) continue;
+    if (!hasPrice(id)){ missing++; continue; }                       // can't value it without a price; flagged below
+    const p = state[id].price, c = Number.isFinite(state[id].chg) ? state[id].chg : 0;
+    hold += qty * p; move += qty * (p - p / Math.max(1 + c / 100, 0.01));
+  }
+  const total = BAL + hold, yest = total - move;
+  return {total, hold, move, pct: yest > 0 ? move / yest * 100 : 0, missing};
+}
+const pfPill = (move, pct) => {
+  if (Math.abs(move) < 0.005) return `<span class="chg num flat" aria-label="No change versus yesterday"><b aria-hidden="true">▬</b>$0.00 (0.00%)</span>`;
+  const up = move > 0;
+  return `<span class="chg num ${up?'up':'down'}" aria-label="${up?'Up':'Down'} ${fmtCash(Math.abs(move))}, ${fmtPct(pct)}, versus yesterday"><b aria-hidden="true">${up?'▲':'▼'}</b>${up?'+':'−'}${fmtCash(Math.abs(move))} (${sign(pct)}${fmtPct(pct)})</span>`;
+};
+function paintPortfolio(){
+  const s = pfStats(); if (!$('pfTotal')) return s;
+  if (!pfCounting) $('pfTotal').textContent = fmtCash(s.total);
+  $('pfDelta').innerHTML = pfPill(s.move, s.pct) + '<span class="note">vs yesterday</span>';
+  $('pfCash').textContent = fmtCash(BAL);
+  $('pfCashPct').textContent = s.total > 0 ? `${(BAL / s.total * 100).toFixed(1)}% of your portfolio` : '';
+  $('pfNote').textContent = s.missing ? `${s.missing} holding${s.missing > 1 ? 's are' : ' is'} left out of the total because ${s.missing > 1 ? 'their prices are' : 'its price is'} unavailable right now.` : '';
+  const fresh = !traded && !Object.values(holdings).some(q => q > 0);        // never traded: friendly empty state instead of empty tables/charts
+  $('pfFresh').hidden = !fresh; $('pfData').hidden = fresh; $('pfeCash').textContent = fmtCash(BAL);
+  if (!fresh){
+    paintHoldings(); paintAlloc();
+    const ch = $('pfChart'); if (ch && ch.dataset.i === undefined){ drawPfChart(!pfChartDrawn); pfChartDrawn = true; }
+  }
+  return s;
+}
+
+// ---- Allocation donut + legend: each coin and cash as a share of total value ----
+const PALETTE = ['#3B82F6','#A855F7','#F59E0B','#14B8A6','#EC4899','#84CC16','#F97316','#06B6D4','#B45309','#6366F1'], CASH_COLOR = '#94A3B8';
+let allocItems = [];
+const sharePct = p => p < 0.1 ? '<0.1%' : p.toFixed(1) + '%';
+function paintAlloc(){
+  const host = $('alloc'); if (!host) return;
+  const rows = holdingRows().filter(r => r.ok && r.value > 0);
+  allocItems = [{name: 'Cash', value: BAL, color: CASH_COLOR}, ...rows.map(r => ({name: r.name, value: r.value, color: PALETTE[COINS.findIndex(c => c[0] === r.id) % PALETTE.length]}))]
+    .filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+  const total = allocItems.reduce((a, i) => a + i.value, 0);
+  if (!(total > 0)){ host.innerHTML = emptyHTML('Nothing to chart yet', 'Your allocation will appear once you have cash or holdings.', false); return; }
+  const R = 76, C = 2 * Math.PI * R, gap = allocItems.length > 1 ? 2.5 : 0; let cum = 0;
+  const segs = allocItems.map((it, i) => {
+    const f = it.value / total, len = Math.max(f * C - gap, .5);
+    const c = `<circle class="seg" data-i="${i}" cx="100" cy="100" r="${R}" stroke="${it.color}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-cum * C).toFixed(2)}" transform="rotate(-90 100 100)"/>`;
+    cum += f; return c;
+  }).join('');
+  const summary = allocItems.map(i => `${i.name} ${sharePct(i.value / total * 100)}`).join(', ');
+  const missing = Object.entries(holdings).filter(([id, q]) => q > 0 && state[id] && !hasPrice(id)).length;
+  host.innerHTML = `
+    <div class="donut-wrap"><svg viewBox="0 0 200 200" role="img" aria-label="Allocation: ${summary}"><circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--bg)" stroke-width="28"/>${segs}</svg>
+      <div class="donut-center" id="dc"></div></div>
+    <div class="legend-wrap"><ul class="legend">${allocItems.map((it, i) => `<li data-i="${i}"><span class="sw" style="background:${it.color}" aria-hidden="true"></span><span class="lg-name">${it.name}</span><span class="lg-val num">${fmtCash(it.value)}</span><span class="lg-pct num">${sharePct(it.value / total * 100)}</span></li>`).join('')}</ul>
+      ${missing ? `<p class="lg-note">${missing} holding${missing > 1 ? 's are' : ' is'} not shown because ${missing > 1 ? 'their prices are' : 'its price is'} unavailable.</p>` : ''}</div>`;
+  hlAlloc(null);
+}
+function hlAlloc(i){
+  const dc = $('dc'); if (!dc) return;
+  document.querySelectorAll('#alloc .seg').forEach(c => c.classList.toggle('dim', i !== null && +c.dataset.i !== i));
+  document.querySelectorAll('#alloc .legend li').forEach(li => li.classList.toggle('on', i !== null && +li.dataset.i === i));
+  const total = allocItems.reduce((a, x) => a + x.value, 0);
+  dc.innerHTML = i === null ? `<span class="dc-v num">${allocItems.length}</span><span class="dc-l">${allocItems.length === 1 ? 'asset' : 'assets'}</span>`
+    : `<span class="dc-v num">${sharePct(allocItems[i].value / total * 100)}</span><span class="dc-l">${allocItems[i].name}</span>`;
+}
+viewPortfolio.addEventListener('pointerover', e => { if (!e.target.closest('#alloc')) return; const el = e.target.closest('[data-i]'); hlAlloc(el ? +el.dataset.i : null); });
+viewPortfolio.addEventListener('pointerout', e => { if (e.target.closest('#alloc') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#alloc'))) hlAlloc(null); });
+
+// ---- Portfolio value over time: FAKE daily snapshots (Lesson 8's backend will record real ones) ----
+let pfPts = [], pfGeo = null, pfLastW = 0, pfChartDrawn = false;
+function pfSeries(){
+  const s = pfStats(), n = 14, rnd = mulberry(hashStr('portfolio')), end = s.total, start = START, day = 864e5;
+  const share = end > 0 ? s.hold / end : 0, amp = 2.2 * share;             // all-cash → a flat line, because cash doesn't fluctuate
+  let b = [0]; for (let i = 1; i < n; i++) b.push(b[i-1] + rnd() - .5);
+  b = b.map((v, i) => v - b[n-1] * i / (n-1));
+  const mx = Math.max(...b.map(Math.abs)) || 1, now = new Date().setHours(0, 0, 0, 0);
+  return b.map((v, i) => ({t: now - (n-1-i) * day, v: start + (end - start) * i / (n-1) + v / mx * amp / 100 * end}));
+}
+const smoothPath = P => {
+  const at = i => P[Math.max(0, Math.min(P.length-1, i))], f = v => v.toFixed(1);
+  let d = `M${f(P[0][0])} ${f(P[0][1])}`;
+  for (let i = 0; i < P.length-1; i++){ const a = at(i-1), b = P[i], c = P[i+1], e = at(i+2);
+    d += `C${f(b[0]+(c[0]-a[0])/6)} ${f(b[1]+(c[1]-a[1])/6)} ${f(c[0]-(e[0]-b[0])/6)} ${f(c[1]-(e[1]-b[1])/6)} ${f(c[0])} ${f(c[1])}`; }
+  return d;
+};
+function pfReadoutDefault(){
+  const a = pfPts[0].v, b = pfPts[pfPts.length-1].v, diff = b - a;
+  $('pfReadout').innerHTML = pfPill(diff, a > 0 ? diff / a * 100 : 0) + `<span class="note">over ${pfPts.length} days</span>`;
+}
+function drawPfChart(animate){
+  const host = $('pfChart'); if (!host) return;
+  const W = Math.round(host.clientWidth); if (!W) return; pfLastW = W;
+  const pts = pfPts = pfSeries(), n = pts.length, diff = pts[n-1].v - pts[0].v, cls = Math.abs(diff) < 0.005 ? 'flat' : diff > 0 ? 'up' : 'down';
+  const H = W < 520 ? 220 : 280, padR = W < 520 ? 60 : 70, padT = 12, padB = 26, innerW = W - padR, f = v => v.toFixed(1);
+  const vs = pts.map(p => p.v), lo = Math.min(...vs), hi = Math.max(...vs), pad = (hi - lo) * .14 || hi * .02, y0 = lo - pad, y1 = hi + pad;
+  const X = i => i / (n-1) * innerW, Y = v => padT + (1 - (v - y0) / (y1 - y0)) * (H - padT - padB);
+  pfGeo = {W, padR, X, Y};
+  const d = smoothPath(pts.map((p, i) => [X(i), Y(p.v)]));
+  const grid = [0,1,2,3].map(k => { const v = y0 + (y1-y0)*k/3, y = Y(v); return `<line class="gl" x1="0" x2="${innerW}" y1="${f(y)}" y2="${f(y)}"/><text class="ax" x="${W}" y="${f(y+4)}" text-anchor="end">${axisUSD(v)}</text>`; }).join('');
+  const xl = [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1].map((i,k) => `<text class="ax" x="${f(X(i))}" y="${H-6}" text-anchor="${k===0?'start':k===3?'end':'middle'}">${axisT(pts[i].t, '7D')}</text>`).join('');
+  host.querySelector('svg')?.remove();
+  host.insertAdjacentHTML('afterbegin', `<svg class="${cls}${animate?' draw':''}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${xl}<path d="${d}L${f(innerW)} ${H-padB}L0 ${H-padB}Z" fill="url(#pg)"/><path class="ln" pathLength="1" d="${d}"/>
+    <g id="pfScrub" style="display:none"><line class="sl" y1="${padT}" y2="${H-padB}"/><circle class="sd" r="5"/></g></svg>`);
+  host.setAttribute('aria-label', `Portfolio value over ${n} days: from ${fmtCash(pts[0].v)} to ${fmtCash(pts[n-1].v)}. Use left and right arrow keys to inspect days.`);
+  delete host.dataset.i; pfReadoutDefault();
+}
+function pfScrubTo(i){
+  const host = $('pfChart'); if (!host || !pfPts.length) return;
+  i = Math.max(0, Math.min(pfPts.length - 1, i)); host.dataset.i = i;
+  const p = pfPts[i], x = pfGeo.X(i), g = host.querySelector('#pfScrub'); g.style.display = '';
+  const ln = g.querySelector('line'), dot = g.querySelector('circle');
+  ln.setAttribute('x1', x); ln.setAttribute('x2', x); dot.setAttribute('cx', x); dot.setAttribute('cy', pfGeo.Y(p.v));
+  $('pfReadout').innerHTML = `<span class="val num">${fmtCash(p.v)}</span><span class="note">${new Date(p.t).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'})}</span>`;
+}
+function pfScrubOff(){
+  const host = $('pfChart'); if (!host || !pfPts.length) return;
+  delete host.dataset.i; const g = host.querySelector('#pfScrub'); if (g) g.style.display = 'none'; pfReadoutDefault();
+}
+const pfRo = 'ResizeObserver' in window ? new ResizeObserver(() => { const h = $('pfChart'); if (h && Math.round(h.clientWidth) !== pfLastW) drawPfChart(false); }) : null;
+function bindPfChart(){
+  const host = $('pfChart');
+  host.addEventListener('pointermove', e => { if (!pfGeo) return; const r = host.getBoundingClientRect(); pfScrubTo(Math.round((e.clientX - r.left) / (pfGeo.W - pfGeo.padR) * (pfPts.length - 1))); });
+  host.addEventListener('pointerleave', pfScrubOff); host.addEventListener('blur', pfScrubOff);
+  host.addEventListener('keydown', e => {
+    if (e.key === 'Escape') return pfScrubOff();
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault();
+    const i = host.dataset.i === undefined ? pfPts.length - 1 : +host.dataset.i; pfScrubTo(i + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+  pfRo && (pfRo.disconnect(), pfRo.observe(host));
+}
+
+// ---- Holdings table: sortable, with graceful "unknown" rows ----
+let pfSort = {key: 'value', dir: 'desc'};
+const gainSpan = g => !Number.isFinite(g) ? `<span class="chg num na" aria-label="Gain or loss unavailable">—</span>`
+  : Math.abs(g) < 0.005 ? `<span class="chg num flat" aria-label="No change since purchase"><b aria-hidden="true">▬</b>0.00%</span>`
+  : `<span class="chg num ${g>0?'up':'down'}" aria-label="${g>0?'Up':'Down'} ${fmtPct(g)} since purchase"><b aria-hidden="true">${g>0?'▲':'▼'}</b>${sign(g)}${fmtPct(g)}</span>`;
+function holdingRows(){
+  return Object.entries(holdings).filter(([id, q]) => q > 0 && state[id]).map(([id, qty]) => {
+    const [, name, sym, color] = COINS.find(c => c[0] === id), s = state[id], ok = hasPrice(id);
+    const avg = Number.isFinite(costs[id]) ? costs[id] / qty : NaN;                           // NaN = cost unknown
+    return {id, name, sym, color, qty, avg, ok, img: s.img, value: ok ? qty * s.price : NaN, gain: ok && avg > 0 ? (s.price / avg - 1) * 100 : NaN};
+  });
+}
+function holdingTR(r){
+  const icon = r.img ? `<img src="${r.img}" alt="" onerror="this.remove()">` : r.sym[0];
+  return `<tr class="hrow${r.ok ? '' : ' unk'}" data-id="${r.id}">
+    <td><div class="coin" style="--c:${r.color}"><span class="ico" aria-hidden="true">${icon}</span>
+      <div style="min-width:0"><div class="nm"><a class="hlink" href="#/coin/${r.id}">${r.name}</a></div><div class="sym">${r.sym}${r.ok ? '' : '<span class="tag">Price unavailable</span>'}</div></div></div></td>
+    <td class="r num">${fmtQty(r.qty)}</td>
+    <td class="r num">${Number.isFinite(r.avg) ? fmtUSD(r.avg) : '<span class="dash" title="Bought before cost tracking began">—</span>'}</td>
+    <td class="r num val">${r.ok ? fmtCash(r.value) : '<span class="dash">—</span>'}</td>
+    <td class="r">${gainSpan(r.gain)}</td></tr>`;
+}
+function paintHoldings(){
+  const card = $('hlCard'); if (!card) return;
+  const rows = holdingRows(); $('hlCount').textContent = rows.length ? `${rows.length} coin${rows.length > 1 ? 's' : ''}` : '';
+  if (!rows.length){ card.innerHTML = emptyHTML('No holdings yet', 'Buy a coin and it will appear here with its value and gain or loss.<br><a class="empty-link" href="#/">Browse the market</a>', false); return; }
+  const k = pfSort.key, d = pfSort.dir === 'asc' ? 1 : -1;
+  rows.sort((a, b) => {                                                   // unknown values always sink to the bottom, either direction
+    const xu = k !== 'name' && !Number.isFinite(a[k]), yu = k !== 'name' && !Number.isFinite(b[k]);
+    if (xu !== yu) return xu ? 1 : -1;
+    const c = xu ? 0 : k === 'name' ? a.name.localeCompare(b.name) : a[k] - b[k];
+    return c ? c * d : a.name.localeCompare(b.name);
+  });
+  const cols = [['name','Coin','l'], ['qty','Quantity','r'], ['avg','Avg buy price','r'], ['value','Value','r'], ['gain','Gain / loss','r']];
+  const head = cols.map(([key, label, al]) => {
+    const on = key === k;
+    return `<th scope="col" class="${al}" aria-sort="${on ? (pfSort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" class="th-btn${on ? ' on' : ''}" data-sort="${key}" data-dir="${on ? pfSort.dir : ''}">${label}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button></th>`;
+  }).join('');
+  const had = document.activeElement?.dataset?.sort;
+  card.innerHTML = `<div class="tbl-wrap"><table class="hl"><caption class="sr">Your holdings, sorted by ${cols.find(c => c[0] === k)[1].toLowerCase()} ${pfSort.dir === 'asc' ? 'ascending' : 'descending'}</caption><thead><tr>${head}</tr></thead><tbody>${rows.map(holdingTR).join('')}</tbody></table></div>`;
+  if (had) card.querySelector(`[data-sort="${had}"]`)?.focus();
+}
+viewPortfolio.addEventListener('click', e => {
+  const b = e.target.closest('[data-sort]');
+  if (b){ const key = b.dataset.sort; pfSort = pfSort.key === key ? {key, dir: pfSort.dir === 'asc' ? 'desc' : 'asc'} : {key, dir: key === 'name' ? 'asc' : 'desc'}; paintHoldings(); return; }
+  const tr = e.target.closest('.hrow'); if (tr && !e.target.closest('a')) location.hash = '#/coin/' + tr.dataset.id;
+});
+function renderPortfolio(animate){
+  viewPortfolio.innerHTML = `
+    <div class="hero"><div><h1 id="pfTitle" tabindex="-1">Portfolio</h1><p class="sub">Your practice account at a glance, valued at live prices.</p></div></div>
+    <section class="card pf-hero" aria-label="Portfolio summary">
+      <div class="pf-main">
+        <div class="pf-label">Total portfolio value</div>
+        <div class="pf-total num" id="pfTotal">$0.00</div>
+        <div class="pf-delta" id="pfDelta"></div>
+      </div>
+      <div class="pf-side">
+        <div class="pf-label">Cash available</div>
+        <div class="pf-cash num" id="pfCash"></div>
+        <div class="note" id="pfCashPct"></div>
+      </div>
+    </section>
+    <p class="pf-note" id="pfNote"></p>
+    <section class="card pf-fresh" id="pfFresh" aria-labelledby="pfe-h" hidden>
+      <div class="fresh-art" aria-hidden="true"><svg viewBox="0 0 160 120"><rect x="10" y="14" width="140" height="92" rx="18" fill="var(--bg)" stroke="var(--line)"/><path d="M28 84l26-24 22 16 34-38 22 12" fill="none" stroke="var(--up)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/><circle cx="132" cy="54" r="7" fill="var(--up)"/></svg></div>
+      <h2 id="pfe-h">Your portfolio is empty</h2>
+      <p>Head to Market to make your first trade. You have <b class="num" id="pfeCash"></b> of practice cash ready to go.</p>
+      <a class="go-btn" href="#/">Go to Market<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </section>
+    <div id="pfData">
+    <section class="sec pf-holdings" aria-labelledby="hl-h">
+      <div class="sec-h"><h2 id="hl-h">Holdings</h2><span id="hlCount"></span></div>
+      <div class="card" id="hlCard"></div>
+    </section>
+    <section class="sec" aria-labelledby="al-h">
+      <div class="sec-h"><h2 id="al-h">Allocation</h2><span>Share of total value</span></div>
+      <div class="card alloc" id="alloc"></div>
+    </section>
+    <section class="sec" aria-labelledby="hv-h">
+      <div class="sec-h"><h2 id="hv-h">Value over time</h2><span>Sample history for now</span></div>
+      <div class="card chart-card">
+        <div class="chart-top"><div class="readout" id="pfReadout"></div></div>
+        <div class="chart" id="pfChart" tabindex="0" role="img"></div>
+      </div>
+    </section>
+    </div>`;
+  pfStop(); pfCounting = !!animate; pfChartDrawn = false;
+  bindPfChart();
+  if (animate){ $('pfTotal').textContent = fmtCash(0); paintPortfolio();
+    pfStop = tween(1000, e => { $('pfTotal') && ($('pfTotal').textContent = fmtCash(pfStats().total * e)); }, () => { pfCounting = false; paintPortfolio(); }); }   // short count-up on load
+  else paintPortfolio();
+}
+
+// ================= Transaction history (hash route: #/history) =================
+const dayKey = t => new Date(t).toDateString();
+function dayLabel(t){
+  const now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+  return dayKey(t) === dayKey(now) ? 'Today' : dayKey(t) === dayKey(y) ? 'Yesterday'
+    : new Date(t).toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
+}
+function tradeRow(tr){
+  const c = COINS.find(x => x[0] === tr.id); if (!c) return '';
+  const [, name, sym, color] = c, s = state[tr.id], buy = tr.side === 'buy';
+  const icon = s && s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : sym[0];
+  const time = new Date(tr.t).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+  return `<li class="trow" data-t="${tr.t}" style="--c:${color}">
+    <span class="ico" aria-hidden="true">${icon}</span>
+    <div class="t-main"><div class="t-top"><span class="side-tag ${tr.side}">${buy ? 'Buy' : 'Sell'}</span><a class="hlink" href="#/history/${tr.t}" aria-label="View receipt: ${buy ? 'bought' : 'sold'} ${fmtQty(tr.q)} ${sym}">${name}</a></div>
+      <div class="t-sub num">${fmtQty(tr.q)} ${sym} @ ${fmtUSD(tr.p)}</div></div>
+    <div class="t-end"><div class="t-total num">${fmtCash(tr.total)}</div><time class="t-time" datetime="${new Date(tr.t).toISOString()}">${time}</time></div>
+  </li>`;
+}
+// Filters: side chips + coin dropdown + name/symbol search. All three combine and re-filter live.
+let hsSide = 'all', hsCoin = 'all', hsQ = '', histScroll = 0;
+const allTrades = () => trades.filter(t => t && Number.isFinite(t.t) && COINS.some(c => c[0] === t.id));
+function hsMatch(t, side, coin, q){
+  const c = COINS.find(x => x[0] === t.id);
+  return (side === 'all' || t.side === side) && (coin === 'all' || t.id === coin) && (!q || c[1].toLowerCase().includes(q) || c[2].toLowerCase().includes(q));
+}
+function renderHistory(){
+  const all = allTrades();
+  if (hsCoin !== 'all' && !all.some(t => t.id === hsCoin)) hsCoin = 'all';
+  const hero = sub => `<div class="hero"><div><h1 id="hsTitle" tabindex="-1">History</h1><p class="sub" id="hsCount" aria-live="polite">${sub}</p></div></div>`;
+  if (!all.length){
+    viewHistory.innerHTML = hero('Your practice trades, in one place.') + `<div class="card pf-fresh"><div class="fresh-art" aria-hidden="true"><svg viewBox="0 0 160 120"><rect x="10" y="14" width="140" height="92" rx="18" fill="var(--bg)" stroke="var(--line)"/><path d="M34 42h56M34 62h92M34 82h72" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/></svg></div>
+      <h2>No trades yet</h2><p>Every buy and sell you make will be listed here, newest first.</p><a class="go-btn" href="#/">Go to Market<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>`;
+    return;
+  }
+  const coins = [...new Set(all.map(t => t.id))].map(id => COINS.find(c => c[0] === id)).sort((a, b) => a[1].localeCompare(b[1]));
+  const chip = (k, label) => `<button type="button" role="radio" class="chip ${k}" data-hside="${k}" aria-checked="${hsSide === k}" tabindex="${hsSide === k ? 0 : -1}">${label}<span class="cnt" data-cnt="${k}"></span></button>`;
+  viewHistory.innerHTML = hero('') + `
+    <div class="hs-filters">
+      <div class="chips" role="radiogroup" aria-label="Trade type">${chip('all', 'All')}${chip('buy', 'Buys')}${chip('sell', 'Sells')}</div>
+      <div class="sel"><select id="hsCoin" aria-label="Filter by coin"><option value="all">All coins</option>${coins.map(c => `<option value="${c[0]}">${c[1]} (${c[2]})</option>`).join('')}</select></div>
+      <label class="hs-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="hsQ" type="search" placeholder="Search coin or symbol" autocomplete="off" aria-label="Search trades by coin name or symbol"></label>
+    </div>
+    <div id="hsList"></div>`;
+  $('hsCoin').value = hsCoin; $('hsQ').value = hsQ;
+  paintHistory();
+}
+function paintHistory(){
+  const host = $('hsList'); if (!host) return;
+  const all = allTrades(), q = hsQ.trim().toLowerCase();
+  const base = all.filter(t => hsMatch(t, 'all', hsCoin, q));                               // chip counts reflect the coin + search filters
+  const cnt = {all: base.length, buy: base.filter(t => t.side === 'buy').length, sell: base.filter(t => t.side === 'sell').length};
+  viewHistory.querySelectorAll('[data-cnt]').forEach(el => el.textContent = cnt[el.dataset.cnt]);
+  const list = all.filter(t => hsMatch(t, hsSide, hsCoin, q)).sort((a, b) => b.t - a.t);
+  $('hsCount').textContent = list.length === all.length ? `${all.length} trade${all.length > 1 ? 's' : ''} so far, newest first.` : `Showing ${list.length} of ${all.length} trades.`;
+  if (!list.length){
+    host.innerHTML = `<div class="card">${emptyHTML('No trades match', 'Try a different combination, or clear the filters to see everything.<br><button type="button" class="empty-link" data-clear>Clear filters</button>', false)}</div>`; return;
+  }
+  const groups = []; list.forEach(t => { const k = dayKey(t.t), g = groups[groups.length - 1]; g && g.k === k ? g.rows.push(t) : groups.push({k, label: dayLabel(t.t), rows: [t]}); });
+  host.innerHTML = groups.map((g, i) => `<section class="sec" aria-labelledby="dg${i}"><div class="sec-h"><h2 id="dg${i}">${g.label}</h2><span>${g.rows.length} trade${g.rows.length > 1 ? 's' : ''}</span></div>
+    <div class="card"><ul class="tlist">${g.rows.map(tradeRow).join('')}</ul></div></section>`).join('');
+}
+function hsSetSide(k){
+  hsSide = k;
+  viewHistory.querySelectorAll('[data-hside]').forEach(b => { const on = b.dataset.hside === k; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
+  paintHistory();
+}
+viewHistory.addEventListener('click', e => {
+  const c = e.target.closest('[data-hside]'); if (c) return hsSetSide(c.dataset.hside);
+  if (e.target.closest('[data-clear]')){ hsSide = 'all'; hsCoin = 'all'; hsQ = ''; renderHistory(); }
+});
+viewHistory.addEventListener('keydown', e => {
+  const c = e.target.closest('[data-hside]'); if (!c || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  const ks = ['all', 'buy', 'sell'], k = ks[(ks.indexOf(c.dataset.hside) + (e.key === 'ArrowRight' ? 1 : -1) + 3) % 3];
+  e.preventDefault(); hsSetSide(k); viewHistory.querySelector(`[data-hside="${k}"]`).focus();
+});
+viewHistory.addEventListener('change', e => { if (e.target.id === 'hsCoin'){ hsCoin = e.target.value; paintHistory(); } });
+viewHistory.addEventListener('input', e => { if (e.target.id === 'hsQ'){ hsQ = e.target.value; paintHistory(); } });
+viewHistory.addEventListener('click', e => { const r = e.target.closest('.trow'); if (r && !e.target.closest('a')) location.hash = '#/history/' + r.dataset.t; });
+
+// ---- Receipt: one trade, every field labelled (#/history/<timestamp>) ----
+const rcNo = t => 'CL-' + Math.floor(t).toString(36).toUpperCase();      // stable receipt number derived from the trade time
+const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+function renderReceipt(key){
+  const tr = trades.find(x => String(x.t) === key), c = tr && COINS.find(x => x[0] === tr.id);
+  const back = `<a class="back" href="#/history">${BACK_SVG}History</a>`;
+  if (!c){
+    viewReceipt.innerHTML = `<div class="rc-wrap">${back}<div class="card">${emptyHTML('Receipt not found', 'That trade isn’t in your history on this device.<br><a class="empty-link" href="#/history">Back to history</a>', false)}</div></div>`;
+    document.title = 'Receipt not found — CoinLab'; return;
+  }
+  const [id, name, sym, color] = c, s = state[id], buy = tr.side === 'buy', d = new Date(tr.t);
+  const icon = s && s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : sym[0];
+  const row = (l, v, cls = '') => `<div class="${cls}"><dt>${l}</dt><dd>${v}</dd></div>`;
+  viewReceipt.innerHTML = `<div class="rc-wrap">${back}
+    <article class="card receipt" aria-labelledby="rcTitle">
+      <header class="rc-top" style="--c:${color}">
+        <span class="ico" aria-hidden="true">${icon}</span>
+        <h1 class="rc-name" id="rcTitle" tabindex="-1">${buy ? 'Bought' : 'Sold'} ${name}</h1>
+        <div class="rc-amt num">${fmtCash(tr.total)}</div>
+        <div class="rc-lbl">${buy ? 'Total paid' : 'Total received'}</div>
+        <span class="ok-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Completed</span>
+      </header>
+      <div class="rc-tear" aria-hidden="true"></div>
+      <dl class="rc-rows">
+        ${row('Type', `<span class="side-tag ${tr.side}">${buy ? 'Buy' : 'Sell'}</span>`)}
+        ${row('Order', 'Market order')}
+        ${row('Coin', `${name} (${sym})`)}
+        ${row('Quantity', `<span class="num">${fmtQty(tr.q)} ${sym}</span>`)}
+        ${row('Price per coin', `<span class="num">${fmtUSD(tr.p)}</span>`)}
+        ${row('Subtotal', `<span class="num">${fmtCash(tr.total)}</span>`)}
+        ${row('Fee', `<span class="num">$0.00</span>`)}
+        ${row(buy ? 'Total paid' : 'Total received', `<span class="num">${fmtCash(tr.total)}</span>`, 'total')}
+        ${row('Date', d.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'}))}
+        ${row('Time', `<time class="num" datetime="${d.toISOString()}">${d.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', second: '2-digit'})}</time>`)}
+        ${row('Account', 'Practice account')}
+        ${row('Receipt no.', `<span class="num">${rcNo(tr.t)}</span>`)}
+      </dl>
+      <footer class="rc-foot"><a class="view-btn" href="#/coin/${id}">View coin<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><p class="rc-note">Practice trade. No real money was used.</p></footer>
+    </article></div>`;
+}
+
+function route(){
+  if (cfDlg.open) cfDlg.close();
+  const h = location.hash, m = h.match(/^#\/coin\/([\w-]+)/), hm = h.match(/^#\/history\/(\d+)/);
+  const v = m ? 'coin' : /^#\/portfolio/.test(h) ? 'portfolio' : hm ? 'receipt' : /^#\/history/.test(h) ? 'history' : 'market';
+  if (curView === 'market' && v !== 'market') lastScroll = scrollY;
+  if (curView === 'history' && v === 'receipt') histScroll = scrollY;
+  const navKey = v === 'receipt' ? 'history' : v === 'portfolio' || v === 'history' ? v : 'market';
+  document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === navKey ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  viewMarket.hidden = v !== 'market'; viewCoin.hidden = v !== 'coin'; viewPortfolio.hidden = v !== 'portfolio'; viewHistory.hidden = v !== 'history'; viewReceipt.hidden = v !== 'receipt';
+  pfStop(); pfCounting = false; if (v !== 'portfolio') pfRo && pfRo.disconnect();
+  if (v === 'coin'){
+    if (coinId !== m[1]){ range = '1D'; side = 'buy'; qtyStr = ''; }
+    coinId = m[1]; renderCoin(); scrollTo(0, 0); $('cName')?.focus({preventScroll:true});
+  } else {
+    coinId = null; cur = null; ro && ro.disconnect();
+    if (v === 'portfolio'){ document.title = 'Portfolio — CoinLab'; renderPortfolio(true); scrollTo(0, 0); $('pfTitle')?.focus({preventScroll:true}); }
+    else if (v === 'history'){ document.title = 'History — CoinLab'; renderHistory(); scrollTo(0, curView === 'receipt' ? histScroll : 0); if (curView !== 'receipt') $('hsTitle')?.focus({preventScroll:true}); }
+    else if (v === 'receipt'){ document.title = 'Receipt — CoinLab'; renderReceipt(hm[1]); scrollTo(0, 0); $('rcTitle')?.focus({preventScroll:true}); }
+    else { document.title = 'CoinLab — Market'; if (curView !== 'market') scrollTo(0, lastScroll); }
+  }
+  curView = v;
+}
+addEventListener('hashchange', route);
+route();
+
+const statusEl = document.getElementById('status'), statusText = document.getElementById('statusText');
+async function refresh(){
+  const prev = Object.fromEntries(COINS.map(c=>[c[0],state[c[0]].price]));
+  try{
+    const ids = COINS.map(c=>c[0]).join(',');
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`);
+    if(!r.ok) throw new Error(r.status);
+    const got = new Set();
+    (await r.json()).forEach(d=>{
+      const s = state[d.id]; if(!s) return;
+      got.add(d.id); s.img = d.image ?? s.img;
+      if (Number.isFinite(d.current_price) && d.current_price > 0){ s.price = d.current_price; s.chg = d.price_change_percentage_24h ?? 0; s.live = true; }
+      else { s.price = null; s.chg = null; s.live = false; }          // feed answered but has no price for this coin
+    });
+    COINS.forEach(([id]) => { if (!got.has(id)){ Object.assign(state[id], {price:null, chg:null, live:false}); } });   // coin missing from the feed
+    const missing = COINS.filter(([id]) => !hasPrice(id)).length;
+    statusEl.classList.toggle('off', missing > 0);
+    statusText.textContent = missing ? `Live prices — ${missing} unavailable` : 'Live prices';
+  }catch(e){
+    statusEl.classList.add('off'); statusText.textContent = 'Offline — showing sample prices';
+  }
+  update(prev);
+}
+refresh(); setInterval(refresh, 30000);
+
+// ---- Welcome modal (first visit + "?" button) ----
+const dlg = $('welcome'), wAmt = $('wAmt'), wChip = $('wChip'), wBurst = $('wBurst'), cashEl = $('cash');
+let seen = false;
+try { seen = localStorage.getItem('coinlab.welcomed') === '1'; } catch(e){}
+let landPending = !seen && typeof dlg.showModal === 'function';
+if (landPending) cashEl.textContent = fmtCash(0);   // nav balance stays empty until the welcome cash "lands"
+
+function tween(ms, step, done){
+  if (reduceMotion){ step(1); done && done(); return () => {}; }
+  const t0 = performance.now(); let id;
+  const f = now => { const p = Math.min((now - t0) / ms, 1); step(1 - Math.pow(1 - p, 3)); p < 1 ? id = requestAnimationFrame(f) : done && done(); };
+  id = requestAnimationFrame(f);
+  return () => cancelAnimationFrame(id);
+}
+function confetti(){
+  const cols = ['#16A34A','#4ADE80','#F59E0B','#FDE68A','#94A3B8'];
+  for (let i = 0; i < 32; i++){
+    const el = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 110;
+    el.style.cssText = `--dx:${(Math.cos(a)*d).toFixed(0)}px;--dy:${(Math.sin(a)*d*.8 - 50).toFixed(0)}px;--r:${(Math.random()*540-270).toFixed(0)}deg;` +
+      `background:${cols[i % cols.length]};width:${5+Math.random()*4}px;height:${8+Math.random()*5}px;animation-delay:${(Math.random()*90).toFixed(0)}ms`;
+    wBurst.appendChild(el);
+  }
+  setTimeout(() => wBurst.replaceChildren(), 1400);
+}
+let stopWelcome = () => {};
+function playWelcome(){
+  stopWelcome();
+  wBurst.replaceChildren(); wChip.classList.remove('show'); wAmt.classList.remove('pop');
+  wAmt.textContent = fmtCash(reduceMotion ? START : 0);
+  let stopTween = () => {};
+  const t = setTimeout(() => {
+    stopTween = tween(1100, e => { wAmt.textContent = fmtCash(START * e); }, () => {
+      wAmt.textContent = fmtCash(START); wAmt.classList.add('pop'); wChip.classList.add('show');
+      if (!reduceMotion) confetti();
+    });
+  }, reduceMotion ? 0 : 280);
+  stopWelcome = () => { clearTimeout(t); stopTween(); };
+}
+const openWelcome = () => { if (typeof dlg.showModal !== 'function') return; dlg.showModal(); playWelcome(); };
+
+dlg.addEventListener('close', () => {
+  stopWelcome();
+  try { localStorage.setItem('coinlab.welcomed', '1'); } catch(e){}
+  if (landPending){
+    landPending = false;
+    tween(800, e => { cashEl.textContent = fmtCash(BAL * e); }, () => { cashEl.textContent = fmtCash(BAL); });
+    const pill = cashEl.parentElement; pill.classList.add('land'); setTimeout(() => pill.classList.remove('land'), 800);
+  }
+});
+$('wGo').addEventListener('click', () => dlg.close());
+$('wClose').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
+$('helpBtn').addEventListener('click', openWelcome);
+if (!seen) openWelcome();
+</script>
+</body>
+</html>
