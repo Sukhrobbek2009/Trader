@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from .history import get_price_history
 from .models import Holding, PriceCache, Transaction, User
 from .strategy import evaluate
+from .valuation import value_portfolio
 
 log = logging.getLogger(__name__)
 
@@ -54,9 +55,9 @@ def run_bot_cycle(session: Session, user_id: int, cfg: BotConfig | None = None,
     holdings = {h.coin_id: h for h in session.scalars(select(Holding).where(Holding.user_id == user_id))}
 
     def equity() -> Decimal:
-        return user.cash_balance + sum(
-            (h.quantity * prices.get(c, h.avg_cost) for c, h in holdings.items()), Decimal(0)
-        )
+        return value_portfolio(
+            user.cash_balance, [(c, h.quantity, h.avg_cost) for c, h in holdings.items()], prices
+        ).total_value
 
     actions = []
     for coin_id, price in prices.items():

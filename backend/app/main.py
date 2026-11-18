@@ -13,17 +13,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from sqlalchemy import select, text
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from .db import get_engine
+from .coins import COINS, search_coin_ids
 from .bot import BotConfig, run_bot_cycle
 from .history import MAX_DAYS, get_price_history
-from .models import PriceCache, User
+from .models import PriceCache, Transaction, User
 from .prices import refresh_prices
 from .trading import TradeError, execute_trade
+from .valuation import snapshot_history, take_daily_snapshots, value_user, yesterday_snapshot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -35,7 +37,15 @@ REFRESH_SECONDS = min(60, max(30, int(os.environ.get("PRICE_REFRESH_SECONDS", "4
 
 def _refresh_once() -> int:
     with Session(get_engine()) as session:
-        return refresh_prices(session)
+        updated = refresh_prices(session)
+    try:  # daily portfolio snapshots piggyback on the loop; a failure must not stop price refreshes
+        with Session(get_engine()) as session:
+            n = take_daily_snapshots(session)
+        if n:
+            log.info("Recorded %d daily portfolio snapshot(s)", n)
+    except Exception:
+        log.exception("Daily snapshot failed")
+    return updated
 
 
 async def _refresh_loop():
@@ -86,15 +96,16 @@ app = FastAPI(title="CoinLab API", lifespan=lifespan)
 
 # The frontend sends the device_id cookie cross-origin (same site, different port), so
 # credentials are allowed; that requires an explicit origin list, never "*".
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",")
+    if o.strip()
+]
+if "*" in CORS_ORIGINS:  # with credentials, "*" would let any website act as the user
+    raise RuntimeError("CORS_ORIGINS must list explicit origins, not '*'")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        o.strip()
-        for o in os.environ.get(
-            "CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
-        ).split(",")
-        if o.strip()
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
@@ -175,16 +186,168 @@ async def validation_error(request: Request, exc: RequestValidationError):
         return await request_validation_exception_handler(request, exc)
     # Flatten to one readable message for the trade form.
     err = exc.errors()[0]
+    if err["type"] == "value_error":      # raised by our own validators: the message is already user-ready
+        return JSONResponse(status_code=422, content={"detail": str(err["ctx"]["error"])})
     field = ".".join(str(x) for x in err["loc"] if x != "body") or "request"
     return JSONResponse(status_code=422, content={"detail": f"Invalid {field}: {err['msg']}"})
 
 
+class HoldingOut(BaseModel):
+    coin_id: str
+    quantity: Decimal
+    avg_cost: Decimal
+    current_price: Decimal | None
+    current_value: Decimal | None   # null when the coin has no cached price
+    gain_loss_pct: float | None     # vs avg_cost
+
+
+class VsYesterdayOut(BaseModel):
+    snapshot_at: datetime
+    previous_value: Decimal
+    gain_loss: Decimal
+    gain_loss_pct: float | None
+
+
+class PortfolioOut(BaseModel):
+    cash_balance: Decimal
+    total_value: Decimal
+    unpriced_count: int             # holdings excluded from total_value (no price)
+    vs_yesterday: VsYesterdayOut | None   # null until a snapshot from a previous day exists
+    holdings: list[HoldingOut]
+
+
+@app.get("/portfolio", response_model=PortfolioOut)
+def portfolio(
+    device_id: str | None = Cookie(default=None),
+    session: Session = Depends(get_session),
+):
+    device = _valid_device_id(device_id)
+    user = session.scalar(select(User).where(User.device_id == device)) if device else None
+    if user is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+
+    val = value_user(session, user)          # the one shared valuation function
+    snap = yesterday_snapshot(session, user.id)
+    vs = None
+    if snap is not None:
+        gain = val.total_value - snap.total_value
+        pct = float(gain / snap.total_value * 100) if snap.total_value > 0 else None
+        vs = VsYesterdayOut(snapshot_at=snap.created_at, previous_value=snap.total_value,
+                            gain_loss=gain, gain_loss_pct=pct)
+    return PortfolioOut(
+        cash_balance=val.cash_balance, total_value=val.total_value,
+        unpriced_count=val.unpriced_count, vs_yesterday=vs,
+        holdings=[HoldingOut(**vars(h)) for h in val.holdings],
+    )
+
+
+class SnapshotOut(BaseModel):
+    created_at: datetime
+    total_value: Decimal
+
+
+@app.get("/portfolio/history", response_model=list[SnapshotOut])
+def portfolio_history(
+    limit: int = Query(365, ge=1, le=1000),
+    device_id: str | None = Cookie(default=None),
+    session: Session = Depends(get_session),
+):
+    """The guest user's daily snapshots, oldest first (the latest `limit` of them)."""
+    device = _valid_device_id(device_id)
+    user_id = session.scalar(select(User.id).where(User.device_id == device)) if device else None
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    return [SnapshotOut(created_at=r.created_at, total_value=r.total_value)
+            for r in snapshot_history(session, user_id, limit)]
+
+
+class TransactionOut(BaseModel):
+    id: int
+    coin_id: str
+    coin_name: str | None
+    symbol: str | None
+    side: str
+    quantity: Decimal
+    price: Decimal
+    total: Decimal
+    created_at: datetime
+
+
+class TransactionsOut(BaseModel):
+    items: list[TransactionOut]          # newest first
+    next_before: int | None              # pass as ?before= for the next (older) page; null = no more
+    counts: dict[str, int]               # all/buy/sell under the coin + search filters (ignores side and paging)
+    total_trades: int                    # all of this user's trades, unfiltered
+
+
+@app.get("/transactions", response_model=TransactionsOut)
+def transactions(
+    side: Literal["all", "buy", "sell"] = "all",
+    coin_id: str | None = Query(None, max_length=64),
+    q: str | None = Query(None, max_length=64, description="matches coin name or symbol"),
+    limit: int = Query(50, ge=1, le=200),
+    before: int | None = Query(None, ge=1, description="return trades with id below this (cursor)"),
+    device_id: str | None = Cookie(default=None),
+    session: Session = Depends(get_session),
+):
+    """The guest user's trades, newest first, with the history page's filters."""
+    device = _valid_device_id(device_id)
+    user_id = session.scalar(select(User.id).where(User.device_id == device)) if device else None
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+
+    base = [Transaction.user_id == user_id]            # coin + search filters (shared by items and counts)
+    if coin_id and coin_id != "all":
+        base.append(Transaction.coin_id == coin_id)
+    if q and q.strip():
+        base.append(Transaction.coin_id.in_(search_coin_ids(q)))   # no match -> empty IN -> no rows
+
+    by_side = dict(session.execute(
+        select(Transaction.side, func.count()).where(*base).group_by(Transaction.side)).all())
+    counts = {"buy": by_side.get("buy", 0), "sell": by_side.get("sell", 0)}
+    counts["all"] = counts["buy"] + counts["sell"]
+    total_trades = session.scalar(select(func.count()).where(Transaction.user_id == user_id)) or 0
+
+    where = list(base)
+    if side != "all":
+        where.append(Transaction.side == side)
+    if before is not None:
+        where.append(Transaction.id < before)
+    # Fetch one extra row to learn whether another page exists.
+    rows = session.scalars(select(Transaction).where(*where).order_by(Transaction.id.desc()).limit(limit + 1)).all()
+    more = len(rows) > limit
+    rows = rows[:limit]
+    return TransactionsOut(
+        items=[TransactionOut(id=t.id, coin_id=t.coin_id, coin_name=COINS.get(t.coin_id, (None, None))[0],
+                              symbol=COINS.get(t.coin_id, (None, None))[1], side=t.side, quantity=t.quantity,
+                              price=t.price, total=t.total, created_at=t.created_at) for t in rows],
+        next_before=rows[-1].id if more else None,
+        counts=counts,
+        total_trades=total_trades,
+    )
+
+
+MAX_TRADE_QUANTITY = Decimal("1000000000")   # 1e9 units: far beyond anything the $10k simulator can afford
+
+
 class TradeIn(BaseModel):
-    # No price field on purpose: the server always uses its cached price.
+    # No price (or user id) field on purpose: the server uses its cached price and the cookie's user.
+    # extra="forbid" turns any attempt to send one into an error instead of silently ignoring it.
+    model_config = ConfigDict(extra="forbid")
+
     coin_id: str = Field(min_length=1, max_length=64)
     side: Literal["buy", "sell"]
-    # Positivity is checked in execute_trade so the error message is uniform.
     quantity: Decimal = Field(max_digits=28, decimal_places=12)
+
+    @field_validator("quantity")
+    @classmethod
+    def sensible_quantity(cls, v: Decimal) -> Decimal:
+        # Runs while the request is parsed, i.e. before the cookie lookup, any query or any lock.
+        if not v.is_finite() or v <= 0:
+            raise ValueError("Quantity must be greater than 0")
+        if v > MAX_TRADE_QUANTITY:
+            raise ValueError("Quantity is too large")
+        return v
 
 
 class TradeOut(BaseModel):
