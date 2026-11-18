@@ -5,11 +5,15 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -19,6 +23,7 @@ from .bot import BotConfig, run_bot_cycle
 from .history import MAX_DAYS, get_price_history
 from .models import PriceCache, User
 from .prices import refresh_prices
+from .trading import TradeError, execute_trade
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -79,7 +84,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CoinLab API", lifespan=lifespan)
 
-# /prices is public and cookie-free, so no credentials are needed cross-origin.
+# The frontend sends the device_id cookie cross-origin (same site, different port), so
+# credentials are allowed; that requires an explicit origin list, never "*".
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -89,7 +95,9 @@ app.add_middleware(
         ).split(",")
         if o.strip()
     ],
-    allow_methods=["GET"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 DEVICE_COOKIE = "device_id"
@@ -159,6 +167,68 @@ def price_history(
         return get_price_history(coin_id, days, session)
     except LookupError:
         raise HTTPException(status_code=404, detail="Unknown coin")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path != "/trade":
+        return await request_validation_exception_handler(request, exc)
+    # Flatten to one readable message for the trade form.
+    err = exc.errors()[0]
+    field = ".".join(str(x) for x in err["loc"] if x != "body") or "request"
+    return JSONResponse(status_code=422, content={"detail": f"Invalid {field}: {err['msg']}"})
+
+
+class TradeIn(BaseModel):
+    # No price field on purpose: the server always uses its cached price.
+    coin_id: str = Field(min_length=1, max_length=64)
+    side: Literal["buy", "sell"]
+    # Positivity is checked in execute_trade so the error message is uniform.
+    quantity: Decimal = Field(max_digits=28, decimal_places=12)
+
+
+class TradeOut(BaseModel):
+    transaction_id: int
+    coin_id: str
+    side: str
+    quantity: Decimal
+    price: Decimal
+    total: Decimal
+    cash_balance: Decimal
+    holding_quantity: Decimal  # 0 after selling everything
+    holding_avg_cost: Decimal | None
+
+
+@app.post("/trade", response_model=TradeOut)
+def trade(
+    body: TradeIn,
+    device_id: str | None = Cookie(default=None),
+    session: Session = Depends(get_session),
+):
+    device = _valid_device_id(device_id)
+    if device is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    try:
+        # One database transaction: the cash update, the holdings update and the
+        # transactions insert commit together, or (on any error, including a crash
+        # before COMMIT) none of them do. execute_trade first takes a row lock on
+        # the user (SELECT ... FOR UPDATE), so two simultaneous trades for the same
+        # user run one after the other, each seeing the other's committed result.
+        with session.begin():
+            user_id = session.scalar(select(User.id).where(User.device_id == device))
+            if user_id is None:
+                raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+            tx, user, holding = execute_trade(session, user_id, body.coin_id, body.side, body.quantity)
+            out = TradeOut(
+                transaction_id=tx.id, coin_id=tx.coin_id, side=tx.side, quantity=tx.quantity,
+                price=tx.price, total=tx.total, cash_balance=user.cash_balance,
+                holding_quantity=holding.quantity if holding else Decimal(0),
+                holding_avg_cost=holding.avg_cost if holding else None,
+            )
+    except TradeError as e:
+        # session.begin() has already rolled everything back.
+        raise HTTPException(status_code=e.status, detail=e.message)
+    return out
 
 
 @app.get("/me", response_model=MeOut)

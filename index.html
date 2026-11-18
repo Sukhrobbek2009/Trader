@@ -1023,7 +1023,7 @@ function bindTrade(){
   });
 }
 
-// ---- Orders: validate → confirmation sheet → execute (cash + holdings kept in localStorage until Lesson 7's backend) ----
+// ---- Orders: validate → confirmation sheet → POST /trade (the backend owns cash + holdings; localStorage just mirrors the result) ----
 function orderState(sd, id, q){
   const p = state[id].price, total = Math.round(q * p * 100) / 100, held = holdings[id] || 0;   // charged to the cent, exactly as shown
   const noPrice = !hasPrice(id);        // never build an order from a missing price (total would be NaN)
@@ -1031,10 +1031,11 @@ function orderState(sd, id, q){
 }
 const cfDlg = $('confirm');
 let cf = null;   // the order being confirmed: {side, id, q}
+let cfBusy = false, cfError = '';   // request in flight / the server's rejection message for this order
 function openConfirm(){
   const q = parseFloat(qtyStr) || 0, st = orderState(side, coinId, q);
   if (!(q > 0) || st.over || st.tooSmall || st.noPrice) return;
-  cf = {side, id: coinId, q}; renderConfirm(); cfDlg.showModal();
+  cf = {side, id: coinId, q}; cfError = ''; renderConfirm(); cfDlg.showModal();
 }
 function renderConfirm(){            // re-run on every live price tick while the sheet is open, so what you see is what executes
   const [id, name, sym, color] = COINS.find(c => c[0] === cf.id), s = state[id], buy = cf.side === 'buy', st = orderState(cf.side, id, cf.q);
@@ -1046,8 +1047,9 @@ function renderConfirm(){            // re-run on every live price tick while th
   $('cfTotalL').textContent = buy ? 'You’ll pay' : 'You’ll receive'; $('cfTotal').textContent = fmtCash(st.total);
   const why = st.noPrice ? 'The price is unavailable right now. Try again in a moment.'
     : st.over ? (buy ? `The price moved and you now need <b class="num">${fmtCash(Math.round((st.total - BAL) * 100) / 100)}</b> more cash for this order.` : `You no longer hold <b class="num">${fmtQty(cf.q)} ${sym}</b>.`) + ' Cancel and adjust the quantity.' : '';
-  $('cfWarn').innerHTML = why ? `<div class="q-warn" style="margin:0 0 14px"><i aria-hidden="true">!</i><span>${why}</span></div>` : '';
-  const ok = $('cfOk'); ok.textContent = buy ? 'Confirm buy' : 'Confirm sell'; ok.className = 'cf-ok ' + cf.side; ok.disabled = st.over || st.tooSmall || st.noPrice;
+  const msg = cfError ? esc(cfError) : why;   // the server's exact rejection message wins over the local hint
+  $('cfWarn').innerHTML = msg ? `<div class="q-warn" style="margin:0 0 14px"><i aria-hidden="true">!</i><span>${msg}</span></div>` : '';
+  const ok = $('cfOk'); ok.textContent = cfBusy ? 'Placing order…' : buy ? 'Confirm buy' : 'Confirm sell'; ok.className = 'cf-ok ' + cf.side; ok.disabled = cfBusy || st.over || st.tooSmall || st.noPrice;
 }
 function showToast(html){
   const el = document.createElement('div'); el.className = 'toast';
@@ -1072,31 +1074,48 @@ function celebrateFirstTrade(sd, q, sym, total){
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 8000);
   if (!reduceMotion) partyBurst();
 }
-function executeOrder(){
-  if (!cf) return;
+// POST /trade. The server prices the order from its own cache (we send no price) and is the source of truth for cash and holdings.
+async function postTrade(body){
+  const send = () => fetch(`${API_BASE}/trade`, {method: 'POST', credentials: 'include', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  let r = await send();
+  if (r.status === 401){ await ensureSession(true); r = await send(); }   // no guest cookie yet: create the session, retry once
+  const data = await r.json().catch(() => null);
+  if (!r.ok) throw new TradeRejected(data && typeof data.detail === 'string' ? data.detail : `The server rejected this order (HTTP ${r.status}).`);
+  return data;
+}
+class TradeRejected extends Error {}
+async function executeOrder(){
+  if (!cf || cfBusy) return;
   const {side: sd, id, q} = cf, st = orderState(sd, id, q); if (st.over || st.tooSmall || st.noPrice) return renderConfirm();
   const sym = COINS.find(c => c[0] === id)[2], before = BAL, first = !traded;
-  if (sd === 'buy'){
-    BAL = Math.round((BAL - st.total) * 100) / 100; holdings[id] = +((holdings[id] || 0) + q).toFixed(8);
-    if (!(st.held > 0 && costs[id] === undefined)) costs[id] = Math.round(((costs[id] || 0) + st.total) * 100) / 100;   // (older holdings with no recorded cost stay "unknown")
-  } else {
-    BAL = Math.round((BAL + st.total) * 100) / 100; const left = +(st.held - q).toFixed(8);
-    if (left > 0){ holdings[id] = left; if (costs[id] !== undefined) costs[id] = Math.round(costs[id] * left / st.held * 100) / 100; }   // selling keeps the average price unchanged
-    else { delete holdings[id]; delete costs[id]; }
+  cfBusy = true; cfError = ''; renderConfirm();
+  let t;
+  try { t = await postTrade({coin_id: id, side: sd, quantity: q.toFixed(8)}); }
+  catch(e){
+    cfBusy = false;
+    cfError = e instanceof TradeRejected ? e.message : 'Couldn’t reach the CoinLab server, so nothing was traded. Check your connection and try again.';
+    if (cf) renderConfirm();   // the sheet stays open, showing the server's message; the order was NOT placed
+    return;
   }
-  trades.unshift({id, side: sd, q, p: st.p, total: st.total, t: Date.now()}); trades.length = Math.min(trades.length, 500);   // newest first, capped
+  cfBusy = false;
+  // Apply the server's result (its price, its totals): never our own arithmetic.
+  const total = Number(t.total), price = Number(t.price), qty = Number(t.quantity), hq = Number(t.holding_quantity);
+  BAL = Number(t.cash_balance);
+  if (hq > 0){ holdings[id] = hq; costs[id] = Math.round(hq * Number(t.holding_avg_cost) * 100) / 100; }   // cost = what you paid for what you still hold
+  else { delete holdings[id]; delete costs[id]; }
+  trades.unshift({id, side: sd, q: qty, p: price, total, t: Date.now()}); trades.length = Math.min(trades.length, 500);   // newest first, capped
   try { localStorage.setItem('coinlab.cash', String(BAL)); localStorage.setItem('coinlab.holdings', JSON.stringify(holdings)); localStorage.setItem('coinlab.costs', JSON.stringify(costs)); localStorage.setItem('coinlab.trades', JSON.stringify(trades)); } catch(e){}
   cf = null; cfDlg.close();
   tween(700, e => { cashEl.textContent = fmtCash(before + (BAL - before) * e); }, () => { cashEl.textContent = fmtCash(BAL); });
   const pill = cashEl.parentElement; pill.classList.remove('land'); void pill.offsetWidth; pill.classList.add('land'); setTimeout(() => pill.classList.remove('land'), 800);
-  if (first){ traded = true; try { localStorage.setItem('coinlab.traded', '1'); } catch(e){} celebrateFirstTrade(sd, q, sym, st.total); }   // once, ever
-  else showToast(`${sd === 'buy' ? 'Bought' : 'Sold'} <b class="num">${fmtQty(q)} ${sym}</b> for <b class="num">${fmtCash(st.total)}</b>`);
+  if (first){ traded = true; try { localStorage.setItem('coinlab.traded', '1'); } catch(e){} celebrateFirstTrade(sd, qty, sym, total); }   // once, ever
+  else showToast(`${sd === 'buy' ? 'Bought' : 'Sold'} <b class="num">${fmtQty(qty)} ${sym}</b> for <b class="num">${fmtCash(total)}</b>`);
   qtyStr = ''; const inp = $('qty'); if (inp) inp.value = ''; updateTrade();
 }
 $('cfOk').addEventListener('click', executeOrder);
 $('cfCancel').addEventListener('click', () => cfDlg.close());
 cfDlg.addEventListener('click', e => { if (e.target === cfDlg) cfDlg.close(); });
-cfDlg.addEventListener('close', () => { cf = null; });
+cfDlg.addEventListener('close', () => { cf = null; cfError = ''; });
 
 function drawChart(animate){
   const host = $('chart'); if (!host || !coinId || !hasPrice(coinId)) return;
@@ -1573,7 +1592,7 @@ function route(){
 addEventListener('hashchange', route);
 route();
 
-const API_BASE = 'http://localhost:8001';   // CoinLab backend: uvicorn app.main:app --port 8001
+const API_BASE = `http://${location.hostname || 'localhost'}:8001`;   // CoinLab backend: uvicorn app.main:app --port 8001 (same host, so the guest cookie is same-site)
 const STALE_MS = 3 * 60 * 1000; let stale = false;
 const statusEl = document.getElementById('status'), statusText = document.getElementById('statusText');
 async function refresh(){
@@ -1603,6 +1622,21 @@ async function refresh(){
   if (failedBefore !== feedFailed && !loading && !retrying) render();         // swap the market list between rows and the failure card
 }
 refresh(); setInterval(refresh, 30000);
+
+// ---- Guest session: GET /me creates/reads the device_id cookie user and gives the real cash balance ----
+let sessionP = null;
+function ensureSession(force){
+  if (!sessionP || force) sessionP = fetch(`${API_BASE}/me`, {credentials: 'include'})
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(me => {
+      const c = Number(me.cash_balance);
+      if (Number.isFinite(c)){ BAL = c; try { localStorage.setItem('coinlab.cash', String(BAL)); } catch(e){} if (!landPending) cashEl.textContent = fmtCash(BAL); }
+      return me;
+    })
+    .catch(e => { sessionP = null; throw e; });
+  return sessionP;
+}
+ensureSession().catch(() => {});   // offline/backend down: keep the mirrored balance; the next order retries
 
 // ---- No-internet banner: follows the browser's online/offline events ----
 const netEl = $('net');
