@@ -53,7 +53,7 @@ header{position:sticky;top:0;z-index:10;background:var(--glass);
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;margin-right:auto}
 .logo i{width:30px;height:30px;border-radius:10px;background:var(--up);display:grid;place-items:center}
 .logo svg{width:18px;height:18px}
-.nav a.link{font-weight:500;font-size:14px;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:999px;transition:color var(--t-fast),background var(--t-fast)}
+.nav a.link{white-space:nowrap;font-weight:500;font-size:14px;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:999px;transition:color var(--t-fast),background var(--t-fast)}
 .nav a.link:hover{color:var(--ink);background:var(--line)}
 .nav a.link[aria-current="page"]{color:var(--ink);background:var(--surface);box-shadow:0 1px 2px rgba(15,23,42,.08)}
 .nav a.link .sm{display:none}   /* short label for phones; must stay above the 620px media rule that reveals it */
@@ -62,7 +62,7 @@ header{position:sticky;top:0;z-index:10;background:var(--glass);
 a:focus-visible,button:focus-visible,select:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .skip{position:absolute;left:16px;top:-80px;z-index:100;padding:12px 20px;border-radius:999px;background:var(--ink);color:var(--surface);font:600 14px 'Sora',sans-serif;text-decoration:none}
 .skip:focus{top:12px}
-main:focus{outline:none}
+main:focus,h1[tabindex="-1"]:focus{outline:none}   /* route changes move focus to the heading for screen readers; no ring on a heading that isn't a control */
 .theme-btn{flex:none;width:36px;height:36px;margin-left:8px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;box-shadow:var(--shadow);transition:color var(--t-fast),transform var(--t-fast)}
 .theme-btn:hover{color:var(--ink)}
 .theme-btn:active{transform:scale(.92)}
@@ -539,6 +539,175 @@ dialog#welcome[open]::backdrop{animation:fade var(--t-base) ease-out}
 .foot{margin-top:16px;font-size:13px;color:var(--muted);text-align:center}
 
 
+/* PnL */
+.pn-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.pn-card{padding:24px}
+.pn-card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pn-val{display:flex;align-items:center;gap:10px;margin-top:10px;font:700 clamp(26px,4.6vw,34px)/1.1 'Space Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.pn-val.up{color:var(--up-text)}.pn-val.down{color:var(--down-text)}.pn-val.flat{color:var(--muted)}
+.pn-sub{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.pn-sub .chg{margin-right:8px;padding:3px 9px;font-size:12px;vertical-align:1px}
+.pn-t .ico,.jr .ico{width:36px;height:36px;font-size:13px}
+.pn-chart-card{padding:24px}
+.pn-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.pn-top h2{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.pn-wrap{position:relative;touch-action:pan-y}
+.pn-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+.pn-wrap text{font:400 11px 'Space Mono',monospace;fill:var(--muted)}
+.pn-up{fill:var(--up)}.pn-down{fill:var(--down)}
+.pn-grid{stroke:var(--line);stroke-width:1}
+.pn-zero{stroke:var(--ink);stroke-opacity:.6;stroke-width:1.5}
+.pn-hi{fill:var(--bg)}
+.pn-tip{position:absolute;top:0;z-index:2;pointer-events:none;padding:8px 12px;border-radius:12px;background:var(--ink);color:var(--surface);font-size:12.5px;white-space:nowrap;box-shadow:var(--shadow)}
+.pn-tip b{display:block;margin-top:2px;font:700 14px 'Space Mono',monospace;font-variant-numeric:tabular-nums}
+.pn-tip[hidden]{display:none}
+.pn-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 0;padding:0;list-style:none}
+.pn-sum li{padding:12px 14px;border-radius:14px;background:var(--bg);font-size:13px;color:var(--muted)}
+.pn-sum b{display:block;margin-top:3px;font:700 15px 'Space Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pn-sum small{display:block;margin-top:2px;font-size:12px}
+@media (max-width:760px){.pn-cards{grid-template-columns:1fr}.pn-card{padding:20px 16px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 12px}.pn-card h2{grid-column:1}.pn-val{grid-column:2;grid-row:1/3;margin:0;font-size:24px}.pn-sub{grid-column:1;margin-top:4px}}
+@media (max-width:620px){.pn-chart-card{padding:20px 16px}.pn-sum{grid-template-columns:1fr}.pn-top .tabs{width:100%}.pn-top .tabs button{flex:1}}
+
+.pn-brk{margin-top:20px;padding:24px}
+.pn-tbl-wrap{overflow-x:auto;margin:0 -8px}
+table.pn-t{width:100%;min-width:700px;border-collapse:collapse}
+table.pn-t th{height:44px;padding:0 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+table.pn-t th.l,table.pn-t td.l{text-align:left}
+table.pn-t td,table.pn-t tfoot th{height:60px;padding:8px;font:700 14px 'Space Mono',monospace;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+table.pn-t tbody tr:last-child td{border-bottom:1px solid var(--line)}
+table.pn-t tfoot th{height:52px;border-bottom:0;font-size:14px;color:var(--ink);letter-spacing:0;text-transform:none}
+table.pn-t tfoot th.l{font-family:'Sora',sans-serif}
+table.pn-t td.l{font-family:'Work Sans',sans-serif;min-width:150px}
+table.pn-t tbody tr:hover td{background:var(--bg)}
+.pn-t th .th-btn{padding:10px 0}
+.pn-note{display:flex;align-items:flex-start;gap:10px;margin:14px 2px 0;font-size:13px;line-height:1.45;color:var(--muted)}
+.pn-note svg{flex:none;width:18px;height:18px;margin-top:1px}
+@media (max-width:620px){.pn-brk{padding:20px 16px}.pn-brk .pn-top .tabs{width:100%}}
+.pn-jr{margin-top:20px;padding:24px}
+.jr-sub{margin:-6px 0 14px;font-size:14px;color:var(--muted);max-width:60ch}
+.jr-fav{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);color:var(--muted);font:600 14px 'Sora',sans-serif;cursor:pointer;transition:color var(--t-fast),background var(--t-fast)}
+.jr-fav:hover{color:var(--ink)}
+.jr-fav:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.jr-fav svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.jr-fav[aria-pressed="true"]{background:var(--down-tint);color:var(--down-text);border-color:transparent}
+.jr-fav[aria-pressed="true"] svg{fill:currentColor}   /* pressed also fills the icon, like the Scanner star: never colour alone */
+.jr-fav .cnt{font:700 12px 'Space Mono',monospace;font-variant-numeric:tabular-nums}
+.jr-acts{display:flex;flex-wrap:wrap;gap:8px}
+.jr-fav[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+@media (max-width:620px){.jr-acts{width:100%}.jr-acts .jr-fav{flex:1;justify-content:center}}
+table.jr{width:100%;border-collapse:collapse}
+table.jr th{height:44px;padding:0 8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}
+table.jr th.r,table.jr td.r{text-align:right}
+table.jr td{padding:8px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+table.jr td.r{font:700 14px 'Space Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.jr td.c-date{white-space:nowrap;color:var(--muted);font-size:13.5px}
+table.jr td.c-note{width:42%;min-width:260px}
+.jr-f{position:relative}
+.jr-f input{width:100%;height:44px;padding:0 80px 0 18px;border-radius:999px;border:1px solid transparent;background:var(--bg);color:var(--ink);font:400 14px 'Work Sans',sans-serif;transition:border-color var(--t-fast),background var(--t-fast)}
+.jr-f input::placeholder{color:var(--muted)}
+.jr-f input:hover{border-color:var(--line)}
+.jr-f input:focus-visible{outline:2px solid var(--focus);outline-offset:1px;background:var(--surface)}
+.jr-saved{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:4px;font:600 12px 'Sora',sans-serif;color:var(--up-text);pointer-events:none;animation:in var(--t-base) var(--ease)}
+.jr-saved[hidden]{display:none}
+.jr-saved svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.jr-foot{margin:12px 2px 0;font-size:13px;color:var(--muted)}
+@media (max-width:760px){
+  .pn-jr{padding:20px 16px}
+  table.jr thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.jr,table.jr tbody{display:block}
+  table.jr tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"coin pnl" "date bot" "note note";gap:2px 12px;padding:12px 4px;border-bottom:1px solid var(--line)}
+  table.jr td{display:block;padding:0;border:0}
+  table.jr td.c-coin{grid-area:coin}table.jr td.r{grid-area:pnl;text-align:right}
+  table.jr td.c-date{grid-area:date;font-size:13px}table.jr td.c-bot{grid-area:bot;text-align:right;font-size:13px;color:var(--muted)}
+  table.jr td.c-note{grid-area:note;width:auto;min-width:0;margin-top:8px}
+}
+/* Ask AI */
+.ak{display:flex;flex-direction:column;overflow:hidden;padding:0}
+.ak-log{list-style:none;margin:0;padding:20px 24px;display:flex;flex-direction:column;gap:14px;height:min(56vh,480px);min-height:280px;overflow-y:auto;overscroll-behavior:contain}
+.ak-log:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.ak-m{display:flex;gap:10px;max-width:min(560px,88%)}
+.ak-m.me{align-self:flex-end;flex-direction:row-reverse}
+.ak-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--up-btn);color:#fff;display:grid;place-items:center}
+.ak-av svg{width:15px;height:15px;fill:currentColor}
+.ak-b{padding:11px 16px;border-radius:18px;font-size:15px;line-height:1.5;background:var(--bg);border-top-left-radius:6px;overflow-wrap:anywhere}
+.ak-m.me .ak-b{background:var(--ink);color:var(--surface);border-top-left-radius:18px;border-top-right-radius:6px}
+.ak-who{display:block;margin-bottom:2px;font:600 11.5px 'Sora',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.ak-m.me .ak-who{color:inherit;opacity:.7;text-align:right}
+.ak-typing .ak-b{display:flex;align-items:center;gap:5px;padding:16px 18px}
+.ak-typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:akdot 1.1s ease-in-out infinite}
+.ak-typing i:nth-child(2){animation-delay:.18s}.ak-typing i:nth-child(3){animation-delay:.36s}
+@keyframes akdot{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.ak-chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px 0;border-top:1px solid var(--line)}
+.ak-chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font:500 14px 'Work Sans',sans-serif;cursor:pointer;transition:background var(--t-fast)}
+.ak-chip:hover{background:var(--bg)}
+.ak-chip:focus-visible,.ak-in input:focus-visible,.ak-send:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ak-chip[aria-disabled="true"],.ak-send[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.ak-in{display:flex;gap:10px;padding:12px 24px 20px}
+.ak-in input{flex:1;min-width:0;height:46px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:400 15px 'Work Sans',sans-serif}
+.ak-in input::placeholder{color:var(--muted)}
+.ak-send{flex:none;display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 20px;border:0;border-radius:999px;background:var(--up-btn);color:#fff;font:600 14px 'Sora',sans-serif;cursor:pointer;transition:background var(--t-fast)}
+.ak-send:hover{background:var(--up-btn-hover)}
+.ak-send svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ak-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:14px 24px;border-bottom:1px solid var(--line)}
+.ak-ttl{display:flex;align-items:center;gap:10px;font:600 15px 'Sora',sans-serif}
+.ak-ttl b{font-weight:inherit}
+.ak-left{display:inline-flex;align-items:baseline;gap:5px;padding:5px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.ak-left b{font:700 14px 'Space Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ak-left[data-low="true"]{background:var(--amber-tint);color:var(--amber-text);border-color:transparent}
+.ak-left[data-low="true"] b{color:inherit}
+.ak-left svg{align-self:center;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ak-note{display:flex;align-items:flex-start;gap:12px;margin:0 24px 4px;padding:14px 16px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.ak-note+.ak-chips,#akNote:not(:empty)+.ak-chips{border-top:0;padding-top:8px}
+.ak-note svg{flex:none;width:22px;height:22px;margin-top:1px;color:var(--muted)}
+.ak-note b{display:block;font:600 15px 'Sora',sans-serif}
+.ak-note span{display:block;margin-top:2px;font-size:14px;line-height:1.45;color:var(--muted)}
+.ak-note.off{background:var(--amber-tint);border-color:transparent}.ak-note.off svg,.ak-note.off span{color:var(--amber-text)}
+#akNote:not(:empty){border-top:1px solid var(--line);padding-top:12px}
+.ak-err .ak-av{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.ak-err .ak-b{border:1px solid var(--line)}
+.ak-retry{margin-top:10px;height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px 'Sora',sans-serif;cursor:pointer}
+.ak-retry:hover{background:var(--bg)}.ak-retry:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ak-in input:disabled{opacity:.6;cursor:not-allowed}
+.ak-disc{margin:-6px 24px 16px;font-size:12.5px;color:var(--muted)}
+@media (max-width:620px){.ak-disc{margin:-4px 16px 14px}}
+@media (max-width:620px){.ak-head{padding:12px 16px}.ak-note{margin:0 16px 4px}.ak-log{padding:16px}.ak-chips{padding:12px 16px 0}.ak-in{padding:12px 16px 16px}.ak-m{max-width:94%}.ak-send span{display:none}.ak-send{padding:0 16px}}
+
+/* News */
+.nw-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.nw-count{font-size:14px;color:var(--muted)}
+.nw-list{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.nw-card{padding:24px}
+.nw-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--muted)}
+.nw-meta b{font:600 13px 'Sora',sans-serif;color:var(--ink)}
+.nw-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--muted)}
+.nw-card h2{margin:8px 0 0;font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.3;text-wrap:balance}
+.nw-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.nw-tags{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.nw-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:600 11.5px 'Work Sans',sans-serif}
+.nw-tag i{width:8px;height:8px;border-radius:50%}
+.nw-sum-btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px 'Sora',sans-serif;cursor:pointer;transition:background var(--t-fast),border-color var(--t-fast)}
+.nw-sum-btn:hover{background:var(--bg)}
+.nw-sum-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.nw-sum-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--t-fast)}
+.nw-sum-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.nw-sum-btn[aria-busy="true"]{color:var(--muted);cursor:progress}
+.nw-sum{margin-top:12px;padding:14px 16px;border-radius:14px;background:var(--bg)}
+.nw-sum[hidden],.nw-load[hidden],.nw-body[hidden]{display:none}
+.nw-load{display:grid;gap:9px;padding:4px 0}
+.nw-load .sk{background:linear-gradient(90deg,var(--line) 30%,var(--surface) 50%,var(--line) 70%);background-size:300% 100%}
+.nw-sum-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:8px}
+.ai-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font:600 12px 'Sora',sans-serif;color:var(--muted)}
+.ai-tag svg{width:13px;height:13px;fill:currentColor}
+.mood{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:999px;font:600 12px 'Sora',sans-serif;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.mood svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mood b{font-weight:inherit}
+.mood-k{font-weight:500}
+.mood.up{background:var(--up-tint);color:var(--up-text);border-color:transparent}
+.mood.down{background:var(--down-tint);color:var(--down-text);border-color:transparent}
+.nw-sum p{margin:0;font-size:15px;line-height:1.55}
+.nw-sum .nw-nfa{margin-top:8px;font-size:12.5px;color:var(--muted)}
+@media (max-width:620px){.nw-card{padding:20px 16px}.nw-card h2{font-size:17px}.nw-bar .sel{flex:1 1 100%}.nw-sum-btn{width:100%;justify-content:center}.nw-foot{flex-direction:column;align-items:stretch}}
+
 /* Scanner */
 .fg{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:center;gap:20px 36px;padding:24px 28px;margin-bottom:20px}
 .fg-gauge svg{display:block;width:100%;height:auto;overflow:visible}
@@ -616,10 +785,21 @@ table.sc .chg.flat{background:var(--bg);color:var(--muted)}
   .sc-fav{width:100%;justify-content:center}
 }
 
+.nav a.link .lg{display:none}.nav a.link .sm{display:inline}   /* eight links: always the short labels (Scan / Ask / Auto); each link keeps its full aria-label */
+@media (max-width:980px){.logo span{display:none}.links{gap:2px}.nav a.link{padding:8px 7px}}
+@media (max-width:760px){.logo{display:none}.links{margin-right:auto}.cash small{display:none}.nav a.link{font-size:13px;padding:8px 6px}}
+/* the links live in a strip that scrolls sideways when they don't fit; the page keeps Help and the balance pinned beside it */
+.links{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 2px;margin:-6px 0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent)}
+.links::-webkit-scrollbar{display:none}
+.nav a.link{flex:none}
+.nav>:not(.links){flex:none}
 @media (max-width:620px){
-  .nav a.link .lg{display:none}.nav a.link .sm{display:inline}
-  .nav a.link{padding:8px 8px;font-size:13px}
-  .cash small{display:none}
+  .nav{gap:6px;padding:0 12px}
+  .links{flex:1 1 0}
+  .nav a.link{padding:8px 12px;font-size:14px}
+  .help,.cash{margin-left:0}
+  .cash{padding:6px 12px;font-size:13px}
   .head,.row{grid-template-columns:minmax(0,1fr) auto auto;gap:10px;padding:0 16px}
   .head span:nth-child(2){display:none}
   .price{font-size:14px}
@@ -631,12 +811,6 @@ table.sc .chg.flat{background:var(--bg);color:var(--muted)}
   .head,.row{gap:8px}
   .logo span{display:none}
 }
-@media (max-width:420px){.nav{gap:2px;padding:0 10px}.nav a.link{padding:8px 5px;font-size:12.5px}.help{width:30px;height:30px;margin-left:2px;font-size:13px}.cash{margin-left:2px;padding:6px 8px;font-size:12px}.logo i{width:28px;height:28px}}
-@media (max-width:360px){.nav{padding:0 8px}.nav a.link{padding:8px 4px;font-size:12px}.help{width:28px;height:28px;margin-left:2px}.cash{margin-left:2px;padding:6px 6px;font-size:11px}.logo i{width:26px;height:26px}}
-@media (max-width:420px){.logo{display:none}.nav a.link[data-nav="scan"]{margin-right:auto}}
-@media (max-width:340px){.nav{gap:1px;padding:0 6px}.nav a.link{padding:8px 2px}.cash{padding:6px 4px;font-size:10.5px}.help{width:26px;height:26px}}
-@media (max-width:370px){.nav a.link{font-size:11.5px;padding:8px 2px}.cash{margin-left:0;font-size:10.5px;padding:6px 6px}.help{margin-left:0}}
-@media (max-width:340px){.nav a.link{padding:8px 1px}.cash{font-size:10px;padding:6px 5px}}   /* five links on 320px phones */   /* 320px phones: four links + help + balance */   /* a fourth link needs the logo's room on phones */
 
 /* master switch + banner */
 .kill{display:inline-flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);box-shadow:var(--shadow)}
@@ -902,6 +1076,37 @@ dialog#botPanel[open]::backdrop{animation:fade var(--t-base) ease-out}
   .bp-live{flex:none}
   .bp-foot{position:sticky;bottom:0;background:var(--surface);z-index:2}
 }
+/* phones: the scan table becomes one card per coin (the header row is kept for screen readers) */
+@media (max-width:620px){
+  .sc-wrap{overflow:visible}
+  table.sc{min-width:0;display:block}
+  table.sc thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.sc tbody{display:block}
+  table.sc tr{display:grid;grid-template-columns:40px repeat(3,minmax(0,1fr));grid-template-areas:"star coin coin coin" ". price price cap" ". d24 d30 d200" ". act act act";gap:12px 8px;align-items:center;padding:16px 12px;border-bottom:1px solid var(--line)}
+  table.sc tbody tr:last-child{border-bottom:0}
+  table.sc td,table.sc tbody tr:hover td{display:block;height:auto;padding:0;border:0;background:transparent;text-align:left}
+  table.sc td.c-star{grid-area:star;align-self:start;width:auto}
+  table.sc td.c-coin{grid-area:coin;position:static;min-width:0}
+  table.sc td.c-p{grid-area:price}table.sc td.c-cap{grid-area:cap}
+  table.sc td.c-24{grid-area:d24}table.sc td.c-30{grid-area:d30}table.sc td.c-200{grid-area:d200}
+  table.sc td.c-act{grid-area:act}
+  table.sc td[data-l]::before{content:attr(data-l);display:block;margin-bottom:4px;font:600 11px 'Work Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  table.sc .sc-bot{width:100%;justify-content:center;height:44px}
+  table.sc td .chg{font-size:11.5px;padding:4px 6px;gap:3px}
+}
+@media (max-width:620px){   /* phones: the breakdown table becomes one card per row; sorting moves to the select above it */
+  .pn-tbl-wrap{overflow:visible;margin:0}
+  table.pn-t{min-width:0;display:block}
+  table.pn-t thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.pn-t tbody,table.pn-t tfoot{display:block}
+  table.pn-t tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px;padding:16px 4px;border-bottom:1px solid var(--line)}
+  table.pn-t tfoot tr{border-bottom:0}
+  table.pn-t td,table.pn-t tbody tr:hover td,table.pn-t tfoot th{display:block;height:auto;padding:0;border:0;background:transparent;text-align:left;white-space:normal}
+  table.pn-t td.l,table.pn-t tfoot th.l{grid-column:1/-1}
+  table.pn-t [data-l]::before{content:attr(data-l);display:block;margin-bottom:4px;font:600 11px 'Work Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .jr-acts .jr-fav{flex:1 1 auto}
+}
+.jr-acts .jr-fav{white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after,::backdrop{animation:none!important;transition:none!important;scroll-behavior:auto!important}}   /* pseudo-elements too: backdrop fades, price-tick glyphs, tear notches */
 </style>
 </head>
@@ -910,11 +1115,16 @@ dialog#botPanel[open]::backdrop{animation:fade var(--t-base) ease-out}
 <header>
   <nav class="nav" aria-label="Primary">
     <a class="logo" href="#/"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-5 4 4 7-8"/></svg></i><span>CoinLab</span></a>
-    <a class="link" href="#/" data-nav="market" aria-current="page">Market</a>
-    <a class="link" href="#/portfolio" data-nav="portfolio">Portfolio</a>
-    <a class="link" href="#/history" data-nav="history">History</a>
-    <a class="link" href="#/scanner" data-nav="scan" aria-label="Scanner"><span class="lg">Scanner</span><span class="sm" aria-hidden="true">Scan</span></a>
-    <a class="link" href="#/auto-trader" data-nav="auto" aria-label="Auto-Trader"><span class="lg">Auto-Trader</span><span class="sm" aria-hidden="true">Auto</span></a>
+    <div class="links" id="navLinks">
+      <a class="link" href="#/" data-nav="market" aria-current="page">Market</a>
+      <a class="link" href="#/portfolio" data-nav="portfolio">Portfolio</a>
+      <a class="link" href="#/pnl" data-nav="pnl">PnL</a>
+      <a class="link" href="#/history" data-nav="history">History</a>
+      <a class="link" href="#/scanner" data-nav="scan" aria-label="Scanner"><span class="lg">Scanner</span><span class="sm" aria-hidden="true">Scan</span></a>
+      <a class="link" href="#/news" data-nav="news">News</a>
+      <a class="link" href="#/ask" data-nav="ask" aria-label="Ask AI"><span class="lg">Ask AI</span><span class="sm" aria-hidden="true">Ask</span></a>
+      <a class="link" href="#/auto-trader" data-nav="auto" aria-label="Auto-Trader"><span class="lg">Auto-Trader</span><span class="sm" aria-hidden="true">Auto</span></a>
+    </div>
     <button class="help" id="helpBtn" type="button" aria-label="How CoinLab works" title="How CoinLab works" aria-haspopup="dialog">?</button>
     <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
     <div class="cash" title="Practice cash balance"><small>Cash</small><span class="num" id="cash">$10,000.00</span></div>
@@ -963,6 +1173,9 @@ dialog#botPanel[open]::backdrop{animation:fade var(--t-base) ease-out}
   <div id="viewAuto" hidden></div>
   <div id="viewBot" hidden></div>
   <div id="viewScan" hidden></div>
+  <div id="viewNews" hidden></div>
+  <div id="viewAsk" hidden></div>
+  <div id="viewPnl" hidden></div>
   <button class="theme-foot" type="button" data-theme-toggle><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span data-theme-label>Dark mode</span></button>
 </main>
 
@@ -1261,7 +1474,7 @@ function update(prev){
 }
 
 // ================= Coin detail page (hash route: #/coin/<id>) =================
-const viewMarket = $('viewMarket'), viewCoin = $('viewCoin'), viewPortfolio = $('viewPortfolio'), viewHistory = $('viewHistory'), viewReceipt = $('viewReceipt'), viewAuto = $('viewAuto'), viewBot = $('viewBot'), viewScan = $('viewScan');
+const viewMarket = $('viewMarket'), viewCoin = $('viewCoin'), viewPortfolio = $('viewPortfolio'), viewHistory = $('viewHistory'), viewReceipt = $('viewReceipt'), viewAuto = $('viewAuto'), viewBot = $('viewBot'), viewScan = $('viewScan'), viewNews = $('viewNews'), viewAsk = $('viewAsk'), viewPnl = $('viewPnl');
 let curView = 'market', pfStop = () => {}, pfCounting = false;
 let pf = null, pfFailed = false;   // latest GET /portfolio response, and whether the last attempt failed
 let coinId = null, range = '1D', lastScroll = 0, cur = null, geo = null, lastW = 0, side = 'buy', qtyStr = '', shownOk = true, retried = false;
@@ -2723,9 +2936,9 @@ function scanRowHTML(r, i){
   return `<tr data-sid="${r.id}">
     <td class="c-star"><button class="star" type="button" data-sstar="${r.id}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} ${esc(r.name)} ${on ? 'from' : 'to'} Favorites">${STAR}</button></td>
     <td class="l c-coin"><div class="coin" style="--c:${r.color}"><span class="ico" aria-hidden="true">${icon}</span><div style="min-width:0"><div class="nm">${nm}</div><div class="sym">${r.sym}</div></div></div>${whyChips(r, i)}</td>
-    <td class="num">${fmtUSD(r.price)}</td>
-    <td>${scanPct(r.d24, '24 hours')}</td><td>${scanPct(r.d30, '30 days')}</td><td>${scanPct(r.d200, '200 days')}</td>
-    <td class="num">${fmtCap(r.cap)}</td>
+    <td class="num c-p" data-l="Price">${fmtUSD(r.price)}</td>
+    <td class="c-24" data-l="24h">${scanPct(r.d24, '24 hours')}</td><td class="c-30" data-l="30d">${scanPct(r.d30, '30 days')}</td><td class="c-200" data-l="200d">${scanPct(r.d200, '200 days')}</td>
+    <td class="num c-cap" data-l="Market cap">${fmtCap(r.cap)}</td>
     <td class="c-act">${r.linked ? `<button type="button" class="sc-bot" data-sbot="${r.id}" aria-label="Create bot for ${esc(r.name)}">+ Create bot</button>`
       : `<button type="button" class="sc-bot" aria-disabled="true" data-sbot="" title="Bots aren’t available for ${esc(r.name)} yet" aria-label="Create bot for ${esc(r.name)}, not available yet">+ Create bot</button>`}</td></tr>`;
 }
@@ -2756,7 +2969,7 @@ function renderScanner(){
     </div>
     <p class="sc-desc" id="scDesc"></p>
     <div id="scPanel" role="tabpanel"><section class="card" id="scCard" tabindex="-1" aria-label="Scan results"></section></div>
-    <p class="sc-foot">Percentages are changes over 24 hours, 30 days and 200 days.</p>
+    <p class="sc-foot">Percentages are changes over 24 hours, 30 days and 200 days. A match is not a prediction: it only shows what has already happened. Practice money only.</p>
     <div class="sr" id="scStatus" role="status" aria-live="polite"></div>`;
   loadScan();
   const nd = $('fgNeedle');                                  // sweep the needle in from 0 (straight to the value if motion is reduced)
@@ -2789,16 +3002,476 @@ viewScan.addEventListener('keydown', e => {
   setScanMode(e.key === 'Home' ? ks[0] : e.key === 'End' ? ks[ks.length - 1] : ks[(i + (e.key === 'ArrowRight' ? 1 : -1) + ks.length) % ks.length], true);
 });
 
+/* ---------- PnL (demo data, in memory only: nothing is saved or fetched) ---------- */
+const pnlRand = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const PNL = (() => {                      // 90 days of daily realised PnL, ending today; slightly positive overall
+  const r = pnlRand(2026), out = [], today = new Date(); today.setHours(0, 0, 0, 0);
+  for (let i = 89; i >= 0; i--){ const d = new Date(today); d.setDate(d.getDate() - i); out.push({d, v: Math.round((r() - .46) * 20000) / 100}); }
+  return out;
+})();
+const PNL_REAL = Math.round(PNL.reduce((a, x) => a + x.v, 0) * 100) / 100, PNL_UNREAL = -86.4, PNL_TOTAL = Math.round((PNL_REAL + PNL_UNREAL) * 100) / 100;
+const PNL_START = 10000;                  // the practice account's starting cash
+const PNL_RANGES = {'7D': 7, '30D': 30, 'All': 90};
+let pnRange = '30D', pnStop = () => {}, pnChartStop = () => {}, pnRo = null, pnE = 1, pnGeo = null;
+const pnDir = v => isFlat(v) ? 'flat' : v > 0 ? 'up' : 'down';
+const pnArrow = d => d === 'up' ? '▲' : d === 'down' ? '▼' : '▬';
+const pnSigned = v => isFlat(v) ? fmtCash(0) : sign(v) + fmtCash(Math.abs(v));
+const pnDay = d => d.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+const pnSlice = () => PNL.slice(-PNL_RANGES[pnRange]);
+const PNL_CARDS = [
+  ['Realised PnL', PNL_REAL, 'Locked in from closed trades.'],
+  ['Unrealised PnL', PNL_UNREAL, 'On open positions. Moves with prices.'],
+  ['Total PnL', PNL_TOTAL, 'Realised plus unrealised.']
+];
+function pnCardHTML([label, v, note], i){
+  const d = pnDir(v), word = d === 'up' ? 'Gain of ' : d === 'down' ? 'Loss of ' : '';
+  return `<section class="card pn-card" aria-labelledby="pnH${i}">
+    <h2 id="pnH${i}">${label}</h2>
+    <div class="pn-val ${d}"><span class="sr">${word}${fmtCash(Math.abs(v))}${i === 2 ? `, ${fmtPct(v / PNL_START * 100)} of the $10,000 start` : ''}</span><span class="pn-n" id="pnN${i}" aria-hidden="true">${reduceMotion ? pnSigned(v) : pnSigned(0)}</span></div>
+    <p class="pn-sub"><span class="chg ${d}"><b aria-hidden="true">${pnArrow(d)}</b>${d === 'up' ? 'Gain' : d === 'down' ? 'Loss' : 'Flat'}</span>${note}${i === 2 ? ` ${sign(v)}${fmtPct(v / PNL_START * 100)} of the $10,000 start.` : ''}</p></section>`;
+}
+const pnNice = x => { const p = Math.pow(10, Math.floor(Math.log10(x))), f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
+const pnAxis = v => (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US');
+function drawPnl(){
+  const wrap = $('pnChart'); if (!wrap) return;
+  const W = Math.max(280, wrap.clientWidth), H = W < 520 ? 240 : 300, L = W < 520 ? 46 : 58, R = 8, T = 12, B = 28;
+  const data = pnSlice(), n = data.length, vals = data.map(x => x.v);
+  let hi = Math.max(0, ...vals), lo = Math.min(0, ...vals);
+  const step = pnNice(((hi - lo) || 1) / 4); hi = Math.ceil(hi / step) * step; lo = Math.floor(lo / step) * step;
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B), y0 = y(0), slot = (W - L - R) / n, bw = Math.min(34, Math.max(2, slot * (n > 40 ? .68 : .6)));
+  pnGeo = {L, slot, n, W, H, T, B};
+  let g = '', ticks = '';
+  for (let t = lo; t <= hi + 1e-9; t += step){
+    const yy = y(t).toFixed(1);
+    if (Math.abs(t) > 1e-9) g += `<line class="pn-grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>`;
+    ticks += `<text x="${L - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${pnAxis(Math.round(t))}</text>`;
+  }
+  const bars = data.map((x, i) => {
+    const bx = L + i * slot + (slot - bw) / 2, yv = y(x.v * pnE), top = Math.min(y0, yv), h = Math.abs(y0 - yv);
+    return h < .5 ? '' : `<rect class="${x.v > 0 ? 'pn-up' : 'pn-down'}" x="${bx.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${bw > 5 ? 2 : 1}"/>`;
+  }).join('');
+  const want = n <= 7 ? n : W < 520 ? 3 : 5, idx = [...new Set(Array.from({length: want}, (_, k) => Math.round(k * (n - 1) / (want - 1 || 1))))];
+  const xl = idx.map(i => `<text x="${(L + i * slot + slot / 2).toFixed(1)}" y="${H - 8}" text-anchor="${i === 0 && n > 7 ? 'start' : i === n - 1 && n > 7 ? 'end' : 'middle'}">${n <= 7 ? data[i].d.toLocaleDateString('en-US', {weekday: 'short'}) : data[i].d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</text>`).join('');
+  const svg = wrap.querySelector('svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `${g}<rect class="pn-hi" id="pnHi" x="0" y="${T}" width="${slot.toFixed(1)}" height="${H - T - B}" rx="4" visibility="hidden"/>${bars}<line class="pn-zero" x1="${L}" x2="${W - R}" y1="${y0.toFixed(1)}" y2="${y0.toFixed(1)}"/>${ticks}${xl}`;
+  svg.insertBefore(svg.querySelector('#pnHi'), svg.querySelector('.pn-up,.pn-down'));   // highlight sits behind the bars
+}
+function pnSummaryHTML(){
+  const data = pnSlice(), best = data.reduce((a, x) => x.v > a.v ? x : a), worst = data.reduce((a, x) => x.v < a.v ? x : a), green = data.filter(x => x.v > 0).length, net = data.reduce((a, x) => a + x.v, 0);
+  const li = (k, v, sub) => `<li>${k}<b>${v}</b><small>${sub}</small></li>`;
+  return li('Best day', pnPill(best.v), pnDay(best.d)) + li('Worst day', pnPill(worst.v), pnDay(worst.d))
+    + li('Green days', `<span class="num">${green} of ${data.length}</span>`, `Net ${pnSigned(net)} over ${pnRange === 'All' ? 'all 90 days' : pnRange === '7D' ? '7 days' : '30 days'}`);
+}
+function paintPnl(animate){
+  const data = pnSlice();
+  $('pnSum').innerHTML = pnSummaryHTML();
+  $('pnTable').innerHTML = `<caption>Daily PnL, ${data.length} days</caption><thead><tr><th scope="col">Day</th><th scope="col">PnL</th></tr></thead><tbody>${data.map(x => `<tr><td>${pnDay(x.d)}</td><td>${pnSigned(x.v)}</td></tr>`).join('')}</tbody>`;
+  $('pnChart').setAttribute('aria-label', `Daily PnL bar chart for ${pnRange === 'All' ? 'all 90 days' : 'the last ' + data.length + ' days'}. Green bars above the zero line are gains, red bars below are losses. Use the left and right arrow keys to read each day. A data table follows.`);
+  viewPnl.querySelectorAll('[data-pr]').forEach(b => { const on = b.dataset.pr === pnRange; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  pnChartStop(); $('pnTip').hidden = true; pnKi = -1;
+  if (animate && !reduceMotion){ pnE = 0; drawPnl(); pnChartStop = tween(600, e => { pnE = e; drawPnl(); }); } else { pnE = 1; drawPnl(); }
+}
+function renderPnl(){
+  pnStop(); pnE = 1;
+  viewPnl.innerHTML = `
+    <div class="hero"><div><h1 id="pnTitle" tabindex="-1">PnL</h1><p class="sub">Profit and loss: what your practice trades have made or lost.</p></div><div class="hero-r"><span class="demo-tag">Demo data: not your real trades</span></div></div>
+    <div class="pn-cards">${PNL_CARDS.map(pnCardHTML).join('')}</div>
+    <section class="card pn-chart-card" aria-labelledby="pnChH">
+      <div class="pn-top"><h2 id="pnChH">Daily PnL</h2>
+        <div class="tabs" role="tablist" aria-label="Chart range">${Object.keys(PNL_RANGES).map(r => `<button type="button" role="tab" data-pr="${r}" aria-selected="${r === pnRange}" tabindex="${r === pnRange ? 0 : -1}">${r}</button>`).join('')}</div></div>
+      <div class="pn-wrap" id="pnChart" role="group" aria-roledescription="bar chart" tabindex="0"><svg aria-hidden="true" focusable="false"></svg><div class="pn-tip" id="pnTip" hidden></div></div>
+      <table class="sr" id="pnTable"></table>
+      <ul class="pn-sum" id="pnSum" aria-label="Range summary"></ul>
+    </section>
+    <section class="card pn-brk" aria-labelledby="pnBrH">
+      <div class="pn-top"><h2 id="pnBrH">Where it came from</h2>
+        <div class="tabs" role="tablist" aria-label="Break down by">${Object.entries(PNL_GROUPS).map(([k, g]) => `<button type="button" role="tab" id="pnGt-${k}" data-pg="${k}" aria-selected="${k === pnGroup}" aria-controls="pnBrk" tabindex="${k === pnGroup ? 0 : -1}">${g.label}</button>`).join('')}</div></div>
+      <div id="pnBrk" role="tabpanel" aria-labelledby="pnGt-${pnGroup}"></div>
+      <p class="pn-note" id="pnWinNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Win rate isn’t everything. A few big losses can outweigh many small wins.</span></p>
+    </section>
+    <section class="card pn-jr" id="pnJournal" aria-labelledby="jrH">
+      <div class="pn-top"><h2 id="jrH">Journal</h2>
+        <div class="jr-acts"><button type="button" class="jr-fav" id="jrFav" aria-pressed="${jrOnlyLoss}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg><span>Losing trades only</span><span class="cnt" id="jrCnt"></span></button>
+        <button type="button" class="jr-fav jr-exp" id="jrExp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg><span>Export data</span></button></div></div>
+      <p class="jr-sub">Jot down why a trade went the way it did and what you learned. Notes save when you leave the box or press Enter.</p>
+      <div id="jrBody"></div>
+      <p class="jr-foot" id="jrFoot"></p>
+      <div class="sr" id="jrStatus" role="status" aria-live="polite"></div>
+    <div class="sr" id="pnLive" role="status" aria-live="polite"></div>
+    </section>
+    <p class="sc-foot">Realised PnL counts only closed trades. Unrealised PnL changes until you sell. Practice money only.</p>`;
+  paintPnl(true); paintBrk(); paintJr();
+  pnRo && pnRo.disconnect(); pnRo = new ResizeObserver(() => drawPnl()); pnRo.observe($('pnChart'));
+  pnStop = tween(1000, e => PNL_CARDS.forEach(([, v], i) => { const el = $('pnN' + i); if (el) el.textContent = pnSigned(v * e); }));   // count up from $0.00
+}
+viewPnl.addEventListener('click', e => { const b = e.target.closest('[data-pr]'); if (b && b.dataset.pr !== pnRange){ pnRange = b.dataset.pr; paintPnl(true); } });
+viewPnl.addEventListener('keydown', e => {
+  const t = e.target.closest('[data-pr]'); if (!t || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  e.preventDefault(); const ks = Object.keys(PNL_RANGES), i = ks.indexOf(t.dataset.pr);
+  pnRange = e.key === 'Home' ? ks[0] : e.key === 'End' ? ks[ks.length - 1] : ks[(i + (e.key === 'ArrowRight' ? 1 : -1) + ks.length) % ks.length];
+  paintPnl(true); viewPnl.querySelector(`[data-pr="${pnRange}"]`).focus();
+});
+// Breakdown tables. Rows are demo values; the last row of each table is balanced so the columns add up to the cards above.
+const PNL_GROUPS = {
+  bot: {label: 'By bot', first: 'Bot', rows: [
+    {name: 'Bitcoin bot', sub: 'SMA Cross', color: '#F7931A', trades: 38, wins: 24, real: 512.30, unreal: 74.10, best: 96.40, worst: -58.20},
+    {name: 'Ethereum bot', sub: 'RSI Reversion', color: '#627EEA', trades: 41, wins: 17, real: -138.75, unreal: -142.30, best: 61.50, worst: -91.65},
+    {name: 'Solana bot', sub: 'Breakout', color: '#9945FF', trades: 26, wins: 12, real: 301.20, unreal: 38.40, best: 106.59, worst: -72.10},
+    {name: 'Manual trades', sub: 'Placed by you', color: '#64748B', trades: 33, wins: 20, best: 88.20, worst: -67.40}]},
+  coin: {label: 'By coin', first: 'Coin', coins: true, rows: [
+    {name: 'Ethereum', sub: 'ETH', color: '#627EEA', trades: 34, wins: 15, real: -96.20, unreal: -110.50, best: 61.50, worst: -91.65},
+    {name: 'Solana', sub: 'SOL', color: '#9945FF', trades: 29, wins: 15, real: 188.40, unreal: 41.20, best: 106.59, worst: -72.10},
+    {name: 'XRP', sub: 'XRP', color: '#23292F', trades: 52, wins: 36, real: -45.10, unreal: -38.60, best: 18.40, worst: -88.38},
+    {name: 'Dogecoin', sub: 'DOGE', color: '#C2A633', trades: 21, wins: 13, real: 142.30, unreal: 22.80, best: 101.70, worst: -44.20},
+    {name: 'Cardano', sub: 'ADA', color: '#0033AD', trades: 17, wins: 8, real: -22.50, unreal: -19.40, best: 37.90, worst: -51.30},
+    {name: 'Chainlink', sub: 'LINK', color: '#2A5ADA', trades: 12, wins: 7, real: 64.00, unreal: 17.30, best: 55.10, worst: -33.80},
+    {name: 'Bitcoin', sub: 'BTC', color: '#F7931A', trades: 61, wins: 39, best: 96.40, worst: -58.20}]}
+};
+Object.values(PNL_GROUPS).forEach(g => {                 // balance the one row that has no figures of its own
+  const open = g.rows.find(r => r.real === undefined), others = g.rows.filter(r => r !== open);
+  open.real = Math.round((PNL_REAL - others.reduce((a, r) => a + r.real, 0)) * 100) / 100;
+  open.unreal = Math.round((PNL_UNREAL - others.reduce((a, r) => a + r.unreal, 0)) * 100) / 100;
+  g.rows.forEach(r => r.rate = r.wins / r.trades * 100);
+});
+const pnCoin = (color, letter, name, sub, sym) => {      // the shared coin cell: round badge (logo when we have one), name, symbol
+  const id = SCAN_DATA.find(c => c[2] === sym)?.[0], img = id && state[id]?.img;
+  return `<div class="coin" style="--c:${color}"><span class="ico" aria-hidden="true">${img ? `<img src="${img}" alt="" onerror="this.remove()">` : esc(letter[0])}</span><div style="min-width:0"><div class="nm">${esc(name)}</div><div class="sym">${esc(sub)}</div></div></div>`;
+};
+const PNL_COLS = [['name', null, 'l'], ['trades', 'Trades', 'r'], ['rate', 'Win rate', 'r'], ['real', 'Realised PnL', 'r'], ['unreal', 'Unrealised PnL', 'r'], ['best', 'Best trade', 'r'], ['worst', 'Worst trade', 'r']];
+let pnGroup = 'bot', pnSort = {key: 'real', dir: 'desc'};
+const pnPill = v => { const d = pnDir(v); return `<span class="chg num ${d}"><b aria-hidden="true">${pnArrow(d)}</b><span class="sr">${d === 'down' ? 'Loss of ' : d === 'up' ? 'Gain of ' : ''}${fmtCash(Math.abs(v))}</span><span aria-hidden="true">${pnSigned(v)}</span></span>`; };   // the same gain/loss pill as Scanner and Portfolio
+const pnCell = pnPill;
+function paintBrk(){
+  const box = $('pnBrk'); if (!box) return;
+  const g = PNL_GROUPS[pnGroup], k = pnSort.key, d = pnSort.dir === 'asc' ? 1 : -1;
+  const rows = [...g.rows].sort((a, b) => { const c = k === 'name' ? a.name.localeCompare(b.name) : a[k] - b[k]; return c ? c * d : a.name.localeCompare(b.name); });
+  const tot = g.rows.reduce((a, r) => ({trades: a.trades + r.trades, wins: a.wins + r.wins, real: a.real + r.real, unreal: a.unreal + r.unreal}), {trades: 0, wins: 0, real: 0, unreal: 0});
+  const ae = document.activeElement, had = ae?.dataset?.psort, hadId = ae?.closest?.('.hl-sortbar') ? ae.id : '';
+  const head = PNL_COLS.map(([key, label, al]) => {
+    const on = key === k, txt = label || g.first;
+    return `<th scope="col" class="${al}" aria-sort="${on ? (pnSort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"${key === 'rate' ? ' aria-describedby="pnWinNote"' : ''}><button type="button" class="th-btn${on ? ' on' : ''}" data-psort="${key}" data-dir="${on ? pnSort.dir : ''}">${txt}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button></th>`;
+  }).join('');
+  const body = rows.map(r => `<tr><td class="l">${pnCoin(r.color, g.coins ? r.sub : r.name, r.name, r.sub, g.coins ? r.sub : '')}</td>
+    <td data-l="Trades">${r.trades}</td><td data-l="Win rate">${r.rate.toFixed(0)}%</td><td data-l="Realised PnL">${pnCell(r.real)}</td><td data-l="Unrealised PnL">${pnCell(r.unreal)}</td><td data-l="Best trade">${pnCell(r.best)}</td><td data-l="Worst trade">${pnCell(r.worst)}</td></tr>`).join('');
+  const bestAll = Math.max(...g.rows.map(r => r.best)), worstAll = Math.min(...g.rows.map(r => r.worst));
+  const bar = `<div class="hl-sortbar"><span class="sel"><select id="pnSortSel" aria-label="Sort ${g.label.toLowerCase()} by">${PNL_COLS.map(([key, label]) => `<option value="${key}"${key === k ? ' selected' : ''}>Sort by ${(label || g.first).toLowerCase()}</option>`).join('')}</select></span><button type="button" class="hl-dir" id="pnDir" aria-label="Sorted ${pnSort.dir === 'asc' ? 'ascending' : 'descending'}. Tap to reverse." title="Reverse order">${pnSort.dir === 'asc' ? '↑' : '↓'}</button></div>`;
+  box.innerHTML = bar + `<div class="pn-tbl-wrap" tabindex="0" role="region" aria-label="${g.label} table, scrolls sideways on small screens"><table class="pn-t"><caption class="sr">PnL ${g.label.toLowerCase()}, sorted by ${(PNL_COLS.find(c => c[0] === k)[1] || g.first).toLowerCase()} ${pnSort.dir === 'asc' ? 'ascending' : 'descending'}</caption>
+    <thead><tr>${head}</tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><th scope="row" class="l">All</th><th data-l="Trades">${tot.trades}</th><th data-l="Win rate">${(tot.wins / tot.trades * 100).toFixed(0)}%</th><th data-l="Realised PnL">${pnCell(tot.real)}</th><th data-l="Unrealised PnL">${pnCell(tot.unreal)}</th><th data-l="Best trade">${pnCell(bestAll)}</th><th data-l="Worst trade">${pnCell(worstAll)}</th></tr></tfoot></table></div>`;
+  box.setAttribute('aria-labelledby', 'pnGt-' + pnGroup);
+  viewPnl.querySelectorAll('[data-pg]').forEach(b => { const on = b.dataset.pg === pnGroup; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  if (had) box.querySelector(`[data-psort="${had}"]`)?.focus(); else if (hadId) $(hadId)?.focus();
+}
+viewPnl.addEventListener('change', e => { if (e.target.id === 'pnSortSel'){ const key = e.target.value; pnSort = {key, dir: key === 'name' ? 'asc' : 'desc'}; paintBrk(); } });
+viewPnl.addEventListener('click', e => {
+  const g = e.target.closest('[data-pg]'); if (g){ pnGroup = g.dataset.pg; return paintBrk(); }
+  if (e.target.closest('#pnDir')){ pnSort.dir = pnSort.dir === 'asc' ? 'desc' : 'asc'; return paintBrk(); }
+  const b = e.target.closest('[data-psort]'); if (!b) return;
+  const key = b.dataset.psort; pnSort = pnSort.key === key ? {key, dir: pnSort.dir === 'asc' ? 'desc' : 'asc'} : {key, dir: key === 'name' ? 'asc' : 'desc'}; paintBrk();
+});
+viewPnl.addEventListener('keydown', e => {
+  const t = e.target.closest('[data-pg]'); if (!t || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  e.preventDefault(); const ks = Object.keys(PNL_GROUPS); pnGroup = ks[(ks.indexOf(t.dataset.pg) + (e.key === 'ArrowRight' ? 1 : -1) + ks.length) % ks.length];
+  paintBrk(); viewPnl.querySelector(`[data-pg="${pnGroup}"]`).focus();
+});
+// Journal: the latest closed trades (demo). Notes live in memory only, so a reload clears them.
+const JR = [   // [days ago, symbol, bot, PnL, note]
+  [0, 'SOL', 'Solana bot', 106.59, ''],
+  [1, 'ETH', 'Ethereum bot', -91.65, 'Stop-loss hit. RSI said oversold but the trend was down. Wait for a bounce first.'],
+  [1, 'BTC', 'Bitcoin bot', 58.10, ''],
+  [2, 'XRP', 'Manual', -88.38, 'Held through the news and ignored my own target.'],
+  [3, 'DOGE', 'Manual', 101.70, ''],
+  [4, 'BTC', 'Bitcoin bot', -34.20, ''],
+  [5, 'LINK', 'Manual', 55.10, ''],
+  [6, 'ETH', 'Ethereum bot', -57.30, ''],
+  [8, 'SOL', 'Solana bot', 41.80, ''],
+  [9, 'ADA', 'Manual', -51.30, 'Bought a hype spike.'],
+  [11, 'BTC', 'Bitcoin bot', 72.60, ''],
+  [13, 'XRP', 'Manual', 18.40, '']
+].map(([ago, sym, bot, pnl, note], id) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ago); return {id, d, sym, bot, pnl, note}; });
+let jrOnlyLoss = false; const jrTimers = {};
+const jrAll = () => /^#\/pnl\/empty/.test(location.hash) ? [] : JR;   // #/pnl/empty previews the no-closed-trades state
+const jrCoin = sym => SCAN_DATA.find(c => c[2] === sym) || [];
+function paintJr(){
+  const body = $('jrBody'); if (!body) return;
+  const all = jrAll(), none = !all.length, rows = all.filter(t => !jrOnlyLoss || t.pnl < 0), losers = all.filter(t => t.pnl < 0).length;
+  $('jrCnt').textContent = losers; $('jrFav').setAttribute('aria-pressed', jrOnlyLoss);
+  $('jrFav').setAttribute('aria-disabled', none); $('jrExp').setAttribute('aria-disabled', none);
+  $('jrFoot').textContent = none ? '' : `Showing ${rows.length} of the ${all.length} most recent closed trades${jrOnlyLoss ? ', losing trades only' : ''}. Demo data.`;
+  body.innerHTML = rows.length ? `<table class="jr"><caption class="sr">Closed trades with notes${jrOnlyLoss ? ', losing trades only' : ''}</caption>
+    <thead><tr><th scope="col">Date</th><th scope="col">Coin</th><th scope="col">Bot</th><th scope="col" class="r">PnL</th><th scope="col">Note</th></tr></thead><tbody>${rows.map(t => {
+      const c = jrCoin(t.sym), day = t.d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}), d = pnDir(t.pnl);
+      return `<tr data-jr="${t.id}"><td class="c-date">${day}</td>
+        <td class="c-coin">${pnCoin(c[3] || '#64748B', t.sym, c[1] || t.sym, t.sym, t.sym)}</td>
+        <td class="c-bot">${esc(t.bot)}</td>
+        <td class="r">${pnPill(t.pnl)}</td>
+        <td class="c-note"><div class="jr-f"><input type="text" maxlength="140" value="${esc(t.note)}" data-jnote="${t.id}" placeholder="Why did this happen? What did I learn?" aria-label="Note for the ${esc(c[1] || t.sym)} trade on ${day}, ${d === 'down' ? 'a loss' : 'a gain'} of ${fmtCash(Math.abs(t.pnl))}">
+          <span class="jr-saved" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Saved</span></div></td></tr>`;
+    }).join('')}</tbody></table>`
+    : none ? emptyHTML('No closed trades yet', 'A trade shows up here once you sell a coin or a bot closes a position. Then you can write down what happened and what you learned.<br><a class="empty-link" href="#/">Browse the market</a>', false)
+    : emptyHTML('No losing trades', 'Nothing to review here. Switch the filter off to see every closed trade.', false);
+}
+const csvCell = v => { let t = String(v); if (/^[=+\-@\t\r]/.test(t) && isNaN(t)) t = "'" + t; return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };   // quotes escaped; a leading = + - @ in text is defused so spreadsheets don't run it as a formula
+function exportJournal(){
+  const all = jrAll(); if (!all.length) return showToast('Nothing to export yet. Close a trade first.');
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const lines = [['Date', 'Symbol', 'Coin', 'Bot', 'PnL (USD)', 'Result', 'Note'], ...all.map(t => [iso(t.d), t.sym, jrCoin(t.sym)[1] || t.sym, t.bot, t.pnl.toFixed(2), t.pnl < 0 ? 'Loss' : t.pnl > 0 ? 'Gain' : 'Flat', t.note])].map(r => r.map(csvCell).join(','));
+  const url = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n') + '\r\n'], {type: 'text/csv;charset=utf-8'}));
+  const a = document.createElement('a'); a.href = url; a.download = `coinlab-journal-${iso(new Date())}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(`Exported ${all.length} trade${all.length === 1 ? '' : 's'} to CSV`);
+}
+viewPnl.addEventListener('click', e => {
+  if (e.target.closest('#jrFav')){ if (jrAll().length){ jrOnlyLoss = !jrOnlyLoss; paintJr(); } return; }
+  if (e.target.closest('#jrExp')) exportJournal();
+});
+viewPnl.addEventListener('change', e => {                // fires on leaving the box or pressing Enter, and only if the text changed
+  const inp = e.target.closest('[data-jnote]'); if (!inp) return;
+  const t = JR[+inp.dataset.jnote], v = inp.value.trim(); t.note = v; inp.value = v;
+  const tag = inp.nextElementSibling; tag.hidden = false; $('jrStatus').textContent = 'Note saved';
+  clearTimeout(jrTimers[t.id]); jrTimers[t.id] = setTimeout(() => { tag.hidden = true; $('jrStatus').textContent = ''; }, 2200);
+});
+viewPnl.addEventListener('keydown', e => {
+  const inp = e.target.closest('[data-jnote]'); if (!inp) return;
+  if (e.key === 'Enter'){ e.preventDefault(); inp.blur(); }                                    // blur commits the note
+  else if (e.key === 'Escape'){ inp.value = JR[+inp.dataset.jnote].note; inp.blur(); }         // discard what was typed since the last save
+});
+viewPnl.addEventListener('input', e => { const inp = e.target.closest('[data-jnote]'); if (inp) inp.nextElementSibling.hidden = true; });   // typing again hides the old "Saved"
+function pnShow(i){                        // highlight day i and show its value (pointer, touch and keyboard share this)
+  const wrap = $('pnChart'), tip = $('pnTip'); if (!wrap || !pnGeo) return;
+  const r = wrap.getBoundingClientRect(), d = pnSlice()[i], dir = pnDir(d.v), hi = $('pnHi');
+  hi.setAttribute('x', (pnGeo.L + i * pnGeo.slot).toFixed(1)); hi.setAttribute('visibility', 'visible');
+  tip.innerHTML = `${pnDay(d.d)}<b>${pnArrow(dir)} ${pnSigned(d.v)}</b>`; tip.hidden = false;
+  const cx = (pnGeo.L + (i + .5) * pnGeo.slot) * (r.width / pnGeo.W), w = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(cx - w / 2, 0), r.width - w) + 'px';
+}
+function pnTip(e){
+  const wrap = $('pnChart'); if (!wrap || !pnGeo) return;
+  const r = wrap.getBoundingClientRect(), x = (e.clientX - r.left) * (pnGeo.W / r.width), i = Math.floor((x - pnGeo.L) / pnGeo.slot);
+  if (i < 0 || i >= pnGeo.n) return pnTipOff();
+  pnKi = i; pnShow(i);
+}
+let pnKi = -1;
+const pnTipOff = () => { const t = $('pnTip'), h = $('pnHi'); if (t) t.hidden = true; if (h) h.setAttribute('visibility', 'hidden'); };
+viewPnl.addEventListener('keydown', e => {   // keyboard: arrows step through the days, Home / End jump, Escape clears
+  if (e.target.id !== 'pnChart' || !pnGeo) return;
+  const n = pnGeo.n; let i = pnKi < 0 ? n - 1 : pnKi;
+  if (e.key === 'ArrowRight') i = Math.min(n - 1, i + 1); else if (e.key === 'ArrowLeft') i = Math.max(0, i - 1);
+  else if (e.key === 'Home') i = 0; else if (e.key === 'End') i = n - 1;
+  else if (e.key === 'Escape'){ pnKi = -1; return pnTipOff(); } else return;
+  e.preventDefault(); pnKi = i; pnShow(i);
+  const d = pnSlice()[i]; $('pnLive').textContent = `${pnDay(d.d)}: ${d.v < 0 ? 'loss' : 'gain'} of ${fmtCash(Math.abs(d.v))}`;
+});
+viewPnl.addEventListener('focusout', e => { if (e.target.id === 'pnChart'){ pnKi = -1; pnTipOff(); } });
+viewPnl.addEventListener('pointermove', e => { if (e.target.closest('#pnChart')) pnTip(e); });
+viewPnl.addEventListener('pointerleave', pnTipOff); viewPnl.addEventListener('pointerdown', e => { if (e.target.closest('#pnChart')) pnTip(e); });
+
+/* ---------- Ask AI (demo only: replies come from a small fake list, nothing is sent anywhere) ---------- */
+const ASK_QA = [   // suggested questions and their canned answers
+  ['What is RSI?', 'RSI (Relative Strength Index) is a score from 0 to 100 that shows how fast a price has risen or fallen lately. Above 70 is often called “overbought” and below 30 “oversold”, but it’s only a hint, not a prediction.'],
+  ['Why did BTC move today?', 'In this demo, Bitcoin moved with the wider market while traders waited for the inflation report. Big news and big orders can both push prices, and the cause is often only clear afterwards.'],
+  ['What is a stop-loss?', 'A stop-loss is an order that sells automatically if the price falls to a level you pick. It limits how much you can lose on a trade, though in a fast market it may fill below your level.'],
+  ['How does paper trading work?', 'You trade at real, live prices using practice money, so you can learn how buying, selling and risk feel without risking a cent. Your results here never touch real funds.']
+];
+const ASK_FALLBACK = [
+  'That’s a good question. In this demo I only have a few example answers, so try one of the suggested questions above.',
+  'I can’t look that up in the demo. A real version would explain it step by step, with examples.',
+  'Demo mode: I give pre-written replies, not live analysis. Try asking about RSI, stop-losses or paper trading.'
+];
+const askLog = [{who: 'ai', text: 'Hi! I’m the CoinLab helper. Ask me about crypto basics or pick a question below. Replies here are demo examples, not financial advice.'}];
+const askSpark = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>';
+const ASK_DAILY = 5;                                   // demo allowance; kept in memory, so a reload resets it
+let askWaiting = false, askFallbackAt = 0, askUsed = 0, askFailedQ = null, askErrUsed = false;
+// #/ask/limit, #/ask/error and #/ask/offline preview each state
+const askHash = k => new RegExp('^#/ask/' + k).test(location.hash);
+const askLeft = () => askHash('limit') ? 0 : Math.max(0, ASK_DAILY - askUsed);
+const askOffline = () => navigator.onLine === false || askHash('offline');
+const askIcons = {
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
+  cloud: '<path d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9.5 4.3 4.3 0 0 1 17.5 18H7z"/><path d="M12 11v3.5M12 17h.01"/>',
+  alert: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/>',
+  wifi: '<path d="M2 8.8a15 15 0 0 1 4.2-2.6M22 8.8a15 15 0 0 0-9.6-3.7M5 12.9a10 10 0 0 1 3.4-2M19 12.9a10 10 0 0 0-3-1.9M8.5 16.4a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>'
+};
+const askIco = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${askIcons[k]}</svg>`;
+const askMsgHTML = m => m.who === 'me'
+  ? `<li class="ak-m me"><div class="ak-b"><span class="ak-who">You</span>${esc(m.text)}</div></li>`
+  : `<li class="ak-m"><span class="ak-av" aria-hidden="true">${askSpark}</span><div class="ak-b"><span class="ak-who">CoinLab AI</span>${esc(m.text)}</div></li>`;
+const askTypingHTML = () => `<li class="ak-m ak-typing" id="akTyping"><span class="ak-av" aria-hidden="true">${askSpark}</span><div class="ak-b"><span class="sr">CoinLab AI is typing</span><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i></div></li>`;
+const askErrHTML = () => `<li class="ak-m ak-err" role="alert"><span class="ak-av" aria-hidden="true">${askIco('cloud')}</span><div class="ak-b"><span class="ak-who">CoinLab AI</span><b>AI is unavailable right now</b><br>That didn’t use up a question. Try again in a moment.<br><button type="button" class="ak-retry" id="akRetry" data-aretry>Try again</button></div></li>`;
+function askNoticeHTML(){                              // calm notices above the chips; offline wins over the limit, since nothing can be sent either way
+  if (askOffline()) return `<div class="ak-note off" role="status">${askIco('wifi')}<div><b>You’re offline</b><span>Reconnect to ask a question. Your conversation is kept.</span></div></div>`;
+  if (askLeft() === 0) return `<div class="ak-note" role="status">${askIco('moon')}<div><b>Daily AI limit reached</b><span>Try again tomorrow. Your ${ASK_DAILY} questions refresh each day. The rest of CoinLab works as usual.</span></div></div>`;
+  return '';
+}
+function paintAsk(){
+  const log = $('akLog'); if (!log) return;
+  const left = askLeft(), blocked = askOffline() || left === 0;
+  log.innerHTML = askLog.map(askMsgHTML).join('') + (askFailedQ !== null ? askErrHTML() : '') + (askWaiting ? askTypingHTML() : '');
+  log.scrollTop = log.scrollHeight;
+  log.setAttribute('aria-busy', askWaiting);
+  $('akLeft').innerHTML = `${left <= 1 ? askIco('alert') : ''}<span class="ak-leftk">AI questions left today:</span> <b class="num">${left}</b><span class="ak-of"> of ${ASK_DAILY}</span>${left === 1 ? '<span class="ak-of"> (last one)</span>' : ''}`;
+  $('akLeft').dataset.low = left <= 1;
+  $('akNote').innerHTML = askNoticeHTML();
+  const inp = $('akText'); inp.disabled = blocked; inp.placeholder = askOffline() ? 'Offline: reconnect to ask' : left === 0 ? 'Come back tomorrow' : 'Ask a question…';
+  viewAsk.querySelectorAll('.ak-chip').forEach(b => b.setAttribute('aria-disabled', askWaiting || blocked));
+  $('akForm').querySelector('.ak-send').setAttribute('aria-disabled', askWaiting || blocked || !inp.value.trim());
+}
+function askSend(text, retry){
+  text = text.trim(); if (!text || askWaiting || askOffline() || askLeft() === 0) return;
+  if (!retry) askLog.push({who: 'me', text});
+  askFailedQ = null; askWaiting = true; $('akText').value = ''; paintAsk();
+  setTimeout(() => {                                     // pretend to think: a short wait with the typing dots
+    askWaiting = false;
+    if (!askErrUsed && askHash('error')){                // preview: the first attempt fails, the retry works
+      askErrUsed = true; askFailedQ = text;
+    } else {
+      const hit = ASK_QA.find(([q]) => q.toLowerCase() === text.toLowerCase());
+      askLog.push({who: 'ai', text: hit ? hit[1] : ASK_FALLBACK[askFallbackAt++ % ASK_FALLBACK.length]}); askUsed++;
+    }
+    if (!$('akLog')) return;                             // left the tab meanwhile; the result is waiting when they return
+    paintAsk();
+    if (askFailedQ !== null) $('akRetry')?.focus({preventScroll: true});
+  }, reduceMotion ? 400 : 1200 + Math.random() * 600);
+}
+function renderAsk(){
+  viewAsk.innerHTML = `
+    <div class="hero"><div><h1 id="akTitle" tabindex="-1">Ask AI</h1><p class="sub">Ask a question about crypto and trading basics.</p></div><div class="hero-r"><span class="demo-tag">Demo replies: not a real AI</span></div></div>
+    <section class="card ak" aria-label="Chat">
+      <div class="ak-head"><div class="ak-ttl"><span class="ak-av" aria-hidden="true">${askSpark}</span><b>CoinLab AI</b></div><div class="ak-left" id="akLeft" role="status"></div></div>
+      <ul class="ak-log" id="akLog" role="log" aria-live="polite" aria-relevant="additions" tabindex="0" aria-label="Conversation"></ul>
+      <div id="akNote"></div>
+      <div class="ak-chips" role="group" aria-label="Suggested questions">${ASK_QA.map(([q]) => `<button type="button" class="ak-chip" data-aq="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+      <form class="ak-in" id="akForm" autocomplete="off">
+        <input id="akText" type="text" maxlength="300" placeholder="Ask a question…" aria-label="Your question" enterkeyhint="send">
+        <button type="submit" class="ak-send" aria-disabled="true" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Send</span></button>
+      </form>
+      <p class="ak-disc">AI answers are demo examples, not financial advice. Practice money only.</p>
+    </section>
+    <p class="sc-foot">The daily allowance is a demo and resets when you reload.</p>`;
+  paintAsk();
+}
+viewAsk.addEventListener('submit', e => { e.preventDefault(); askSend($('akText').value); $('akText').focus(); });
+viewAsk.addEventListener('input', e => { if (e.target.id === 'akText') askSendState(); });
+const askSendState = () => $('akForm').querySelector('.ak-send').setAttribute('aria-disabled', askWaiting || askOffline() || askLeft() === 0 || !$('akText').value.trim());
+viewAsk.addEventListener('click', e => {
+  if (e.target.closest('[data-aretry]')) return askSend(askFailedQ, true);
+  const c = e.target.closest('[data-aq]'); if (c){ askSend(c.dataset.aq); $('akText').focus(); }
+});
+addEventListener('online', () => paintAsk()); addEventListener('offline', () => paintAsk());
+
+/* ---------- News (demo data, in memory only: nothing is saved or fetched) ---------- */
+// Made-up sources and stories. "ago" is minutes since publishing; summaries are canned, not generated.
+const NEWS = [
+  {src:'Ledger Daily', ago:14, title:'Bitcoin steadies near recent highs as traders wait for this week’s inflation report', coins:['BTC'],
+    mood:'neutral', sum:'Bitcoin has moved in a narrow range for two days while traders wait for the inflation numbers. A surprise either way could move prices quickly.'},
+  {src:'Block Brief', ago:48, title:'Ethereum developers pick a test date for the next network upgrade', coins:['ETH'],
+    mood:'good', sum:'The upgrade will run on a test network first, so nothing changes for regular users yet. It aims to make transactions cheaper and faster, but no live date has been set.'},
+  {src:'Chain Weekly', ago:130, title:'Solana activity reaches a monthly high as new apps draw more users', coins:['SOL'],
+    mood:'good', sum:'The number of daily active wallets is the highest in a month, mostly thanks to a few new games and payment apps. Busy networks can slow down, so fees are worth watching.'},
+  {src:'Market Pulse', ago:310, title:'Regulators publish draft rules for how stablecoin issuers hold their reserves', coins:['USDT','ETH'],
+    mood:'neutral', sum:'The draft asks stablecoin issuers to hold safe, easy-to-sell assets behind every coin, and the public can comment before it is final. Stablecoins like USDT aim to stay at $1, and reserves are what back that promise.'},
+  {src:'Coin Courier', ago:540, title:'XRP slips after a large holder moves tokens onto an exchange', coins:['XRP'],
+    mood:'bad', sum:'A large holder moved tokens onto an exchange, which can mean a plan to sell, though it is not proof. The price dipped briefly and then steadied.'},
+  {src:'Ledger Daily', ago:1500, title:'Dogecoin and Chainlink lead gains among larger coins over the weekend', coins:['DOGE','LINK'],
+    mood:'good', sum:'Both coins rose faster than most of the top ten over the weekend, with Chainlink helped by news of a new data partnership. Weekend moves can fade when trading picks up again on Monday.'}
+];
+const newsCoin = sym => SCAN_DATA.find(c => c[2] === sym) || [];
+const newsSyms = [...new Set(NEWS.flatMap(n => n.coins))].sort();
+const agoText = m => { const [n, u] = m < 60 ? [m, 'min'] : m < 1440 ? [Math.round(m / 60), 'hr'] : [Math.round(m / 1440), 'day']; return `<span class="num">${n}</span> ${u} ago`; };
+let newsFilter = 'all';
+const newsOpen = new Set(), newsBusy = new Set();     // which summaries are shown / being "written"
+const MOODS = {   // word + icon always; colour is only a hint
+  good: {label:'Good', cls:'up', ico:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/>'},
+  bad: {label:'Bad', cls:'down', ico:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>'},
+  neutral: {label:'Neutral', cls:'flat', ico:'<circle cx="12" cy="12" r="9"/><path d="M8.5 12h7"/>'}
+};
+const newsChev = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const newsBtnText = i => newsBusy.has(i) ? 'Summarising…' : newsOpen.has(i) ? 'Hide summary' : 'Summarise';
+function newsCardHTML(n){
+  const i = NEWS.indexOf(n), open = newsOpen.has(i), busy = newsBusy.has(i), mo = MOODS[n.mood];
+  return `<li><article class="card nw-card" data-ni="${i}" aria-labelledby="nwH${i}">
+    <div class="nw-meta"><b>${esc(n.src)}</b><span class="dot" aria-hidden="true"></span><span>${agoText(n.ago)}</span></div>
+    <h2 id="nwH${i}">${esc(n.title)}</h2>
+    <div class="nw-sum" id="nwS${i}"${open || busy ? '' : ' hidden'} aria-busy="${busy}">
+      <div class="nw-load" aria-hidden="true"${busy ? '' : ' hidden'}><span class="sk" style="width:100%;height:13px"></span><span class="sk" style="width:92%;height:13px"></span><span class="sk" style="width:58%;height:13px"></span></div>
+      <div class="nw-body"${busy ? ' hidden' : ''}>
+        <div class="nw-sum-top"><span class="ai-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>AI summary</span>
+          <span class="mood ${mo.cls}"><svg viewBox="0 0 24 24" aria-hidden="true">${mo.ico}</svg><span class="mood-k">Sentiment:</span> <b>${mo.label}</b></span></div>
+        <p>${esc(n.sum)}</p>
+        <p class="nw-nfa">Not financial advice. Practice money only.</p>
+      </div>
+    </div>
+    <div class="nw-foot">
+      <ul class="nw-tags" aria-label="Coins mentioned">${n.coins.map(s => `<li class="nw-tag"><i style="background:${newsCoin(s)[3] || 'var(--muted)'}" aria-hidden="true"></i>${s}</li>`).join('')}</ul>
+      <button type="button" class="nw-sum-btn" data-nsum="${i}" aria-expanded="${open}" aria-controls="nwS${i}" aria-describedby="nwH${i}"><span>${newsBtnText(i)}</span>${newsChev}</button>
+    </div>
+  </article></li>`;
+}
+function paintNews(){
+  const list = NEWS.filter(n => newsFilter === 'all' || n.coins.includes(newsFilter));
+  $('nwList').innerHTML = list.map(newsCardHTML).join('');
+  const txt = `${list.length} ${list.length === 1 ? 'story' : 'stories'}`;
+  $('nwCount').innerHTML = `<span class="num">${list.length}</span> ${list.length === 1 ? 'story' : 'stories'}`; $('nwStatus').textContent = txt + (newsFilter === 'all' ? '' : ` about ${newsFilter}`);
+}
+function renderNews(){
+  viewNews.innerHTML = `
+    <div class="hero"><div><h1 id="nwTitle" tabindex="-1">News</h1><p class="sub">Catch up on what’s moving the market, then practice trading it.</p></div><div class="hero-r"><span class="demo-tag">Demo data: not real news</span></div></div>
+    <div class="nw-bar">
+      <div class="sel"><select id="nwCoin" aria-label="Filter news by coin"><option value="all">All coins</option>${newsSyms.map(s => `<option value="${s}"${s === newsFilter ? ' selected' : ''}>${esc(newsCoin(s)[1] || s)} (${s})</option>`).join('')}</select></div>
+      <span class="nw-count" id="nwCount"></span>
+    </div>
+    <ul class="nw-list" id="nwList"></ul>
+    <p class="sc-foot">Demo headlines and summaries. Not financial advice. Practice money only.</p>
+    <div class="sr" id="nwStatus" role="status" aria-live="polite"></div>`;
+  paintNews();
+}
+viewNews.addEventListener('change', e => { if (e.target.id === 'nwCoin'){ newsFilter = e.target.value; paintNews(); } });
+function setSum(card, i){                                  // shimmer while "writing", the summary once done, nothing when closed
+  const box = card.querySelector('.nw-sum'), busy = newsBusy.has(i);
+  box.hidden = !busy && !newsOpen.has(i); box.setAttribute('aria-busy', busy);
+  box.querySelector('.nw-load').hidden = !busy; box.querySelector('.nw-body').hidden = busy;
+}
+viewNews.addEventListener('click', e => {
+  const b = e.target.closest('[data-nsum]'); if (!b || b.getAttribute('aria-busy') === 'true') return;
+  const i = +b.dataset.nsum, card = b.closest('.nw-card');
+  const sync = () => {
+    b.setAttribute('aria-expanded', newsOpen.has(i)); b.removeAttribute('aria-busy');
+    b.firstElementChild.textContent = newsBtnText(i); setSum(card, i);
+  };
+  if (newsOpen.has(i)){ newsOpen.delete(i); sync(); return; }
+  newsBusy.add(i); b.setAttribute('aria-busy', 'true'); b.firstElementChild.textContent = newsBtnText(i); setSum(card, i); $('nwStatus').textContent = 'Summarising…';
+  setTimeout(() => {                                     // pretend to write the summary: a short wait (none if motion is reduced)
+    newsBusy.delete(i); newsOpen.add(i);
+    if (!b.isConnected) return;                          // the list was repainted (filter changed) meanwhile; the summary is open next time
+    sync(); $('nwStatus').textContent = `Summary shown. Sentiment: ${MOODS[NEWS[i].mood].label}.`;
+  }, reduceMotion ? 0 : 600);
+});
+
+const navLinks = document.getElementById('navLinks');
+function navFade(){                                     // soft edge on whichever side has more links to scroll to
+  const max = navLinks.scrollWidth - navLinks.clientWidth, x = navLinks.scrollLeft;
+  navLinks.style.setProperty('--fl', max > 1 && x > 1 ? '28px' : '0px'); navLinks.style.setProperty('--fr', max > 1 && x < max - 1 ? '28px' : '0px');
+}
+function navReveal(){                                   // keep the current tab in view (centred) when the strip scrolls
+  const a = navLinks.querySelector('[aria-current="page"]');
+  if (a) navLinks.scrollTo({left: Math.max(0, a.offsetLeft - (navLinks.clientWidth - a.offsetWidth) / 2 - navLinks.offsetLeft), behavior: reduceMotion ? 'auto' : 'smooth'});
+  navFade();
+}
+navLinks.addEventListener('scroll', navFade, {passive: true});
+new ResizeObserver(navReveal).observe(navLinks);           // also fires when the balance pill or a web font changes the room the links have
+navLinks.querySelectorAll('a').forEach(l => new ResizeObserver(navReveal).observe(l));
 function route(){
   if (cfDlg.open) cfDlg.close();
   const h = location.hash, m = h.match(/^#\/coin\/([\w-]+)/), hm = h.match(/^#\/history\/(\d+)/), bm = h.match(/^#\/auto-trader\/(\d+)\/?$/);
-  const v = m ? 'coin' : bm ? 'bot' : /^#\/auto-trader/.test(h) ? 'auto' : /^#\/scanner/.test(h) ? 'scan' : /^#\/portfolio/.test(h) ? 'portfolio' : hm ? 'receipt' : /^#\/history/.test(h) ? 'history' : 'market';
+  const v = m ? 'coin' : bm ? 'bot' : /^#\/auto-trader/.test(h) ? 'auto' : /^#\/scanner/.test(h) ? 'scan' : /^#\/news/.test(h) ? 'news' : /^#\/ask/.test(h) ? 'ask' : /^#\/pnl/.test(h) ? 'pnl' : /^#\/portfolio/.test(h) ? 'portfolio' : hm ? 'receipt' : /^#\/history/.test(h) ? 'history' : 'market';
   if (curView === 'market' && v !== 'market') lastScroll = scrollY;
   if (curView === 'history' && v === 'receipt') histScroll = scrollY;
-  const navKey = v === 'receipt' ? 'history' : v === 'portfolio' || v === 'history' || v === 'auto' || v === 'scan' ? v : v === 'bot' ? 'auto' : 'market';
+  const navKey = v === 'receipt' ? 'history' : v === 'portfolio' || v === 'history' || v === 'auto' || v === 'scan' || v === 'news' || v === 'ask' || v === 'pnl' ? v : v === 'bot' ? 'auto' : 'market';
   document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === navKey ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
-  viewMarket.hidden = v !== 'market'; viewCoin.hidden = v !== 'coin'; viewPortfolio.hidden = v !== 'portfolio'; viewHistory.hidden = v !== 'history'; viewReceipt.hidden = v !== 'receipt'; viewAuto.hidden = v !== 'auto'; viewBot.hidden = v !== 'bot'; viewScan.hidden = v !== 'scan';
-  abStop(); botRo && botRo.disconnect(); pfStop(); pfCounting = false; if (v !== 'portfolio') pfRo && pfRo.disconnect();
+  navReveal();
+  viewMarket.hidden = v !== 'market'; viewCoin.hidden = v !== 'coin'; viewPortfolio.hidden = v !== 'portfolio'; viewHistory.hidden = v !== 'history'; viewReceipt.hidden = v !== 'receipt'; viewAuto.hidden = v !== 'auto'; viewBot.hidden = v !== 'bot'; viewScan.hidden = v !== 'scan'; viewNews.hidden = v !== 'news'; viewAsk.hidden = v !== 'ask'; viewPnl.hidden = v !== 'pnl';
+  abStop(); botRo && botRo.disconnect(); pfStop(); pnStop(); pnRo && pnRo.disconnect(); pfCounting = false; if (v !== 'portfolio') pfRo && pfRo.disconnect();
   if (v === 'coin'){
     if (coinId !== m[1]){ range = '1D'; side = 'buy'; qtyStr = ''; }
     coinId = m[1]; renderCoin(); scrollTo(0, 0); $('cName')?.focus({preventScroll:true});
@@ -2808,6 +3481,9 @@ function route(){
     else if (v === 'history'){ document.title = 'History — CoinLab'; renderHistory(); scrollTo(0, curView === 'receipt' ? histScroll : 0); if (curView !== 'receipt') $('hsTitle')?.focus({preventScroll:true}); }
     else if (v === 'bot'){ const b = DEMO_BOTS[+bm[1]]; document.title = (b ? COINS.find(c => c[0] === b.id)[1] + ' bot' : 'Bot') + ' — CoinLab'; renderBotDetail(+bm[1]); scrollTo(0, 0); $('bdTitle')?.focus({preventScroll:true}); }
     else if (v === 'scan'){ document.title = 'Scanner — CoinLab'; renderScanner(); scrollTo(0, 0); $('scTitle')?.focus({preventScroll:true}); }
+    else if (v === 'pnl'){ document.title = 'PnL — CoinLab'; renderPnl(); scrollTo(0, 0); $('pnTitle')?.focus({preventScroll:true}); }
+    else if (v === 'ask'){ document.title = 'Ask AI — CoinLab'; renderAsk(); scrollTo(0, 0); $('akTitle')?.focus({preventScroll:true}); }
+    else if (v === 'news'){ document.title = 'News — CoinLab'; renderNews(); scrollTo(0, 0); $('nwTitle')?.focus({preventScroll:true}); }
     else if (v === 'auto'){ document.title = 'Auto-Trader — CoinLab'; renderAutoTrader(); scrollTo(0, 0); $('abTitle')?.focus({preventScroll:true}); }
     else if (v === 'receipt'){ document.title = 'Receipt — CoinLab'; renderReceipt(hm[1]); scrollTo(0, 0); $('rcTitle')?.focus({preventScroll:true}); }
     else { document.title = 'CoinLab — Market'; if (curView !== 'market') scrollTo(0, lastScroll); }
