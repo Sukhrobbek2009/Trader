@@ -8,6 +8,7 @@ from sqlalchemy import (
     Index,
     Numeric,
     String,
+    Text,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -21,6 +22,7 @@ class Base(DeclarativeBase):
 QTY = Numeric(28, 12)
 PRICE = Numeric(28, 12)
 MONEY = Numeric(18, 2)
+PCT = Numeric(6, 2)
 
 
 class User(Base):
@@ -88,6 +90,86 @@ class PortfolioSnapshot(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     total_value: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class Bot(Base):
+    __tablename__ = "bots"
+    __table_args__ = (
+        CheckConstraint("status IN ('running', 'stopped')", name="ck_bots_status"),
+        Index("ix_bots_user", "user_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default="stopped", server_default="stopped"
+    )
+    # Percentages as plain numbers: 2.5 means 2.5%.
+    risk_pct: Mapped[Decimal] = mapped_column(
+        PCT, nullable=False, default=Decimal("2.5"), server_default="2.5"
+    )
+    stop_loss_pct: Mapped[Decimal] = mapped_column(
+        PCT, nullable=False, default=Decimal("5"), server_default="5"
+    )
+    take_profit_pct: Mapped[Decimal] = mapped_column(
+        PCT, nullable=False, default=Decimal("10"), server_default="10"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class BotPosition(Base):
+    __tablename__ = "bot_positions"
+
+    bot_id: Mapped[int] = mapped_column(
+        ForeignKey("bots.id", ondelete="CASCADE"), primary_key=True
+    )
+    coin_id: Mapped[str] = mapped_column(String, primary_key=True)
+    quantity: Mapped[Decimal] = mapped_column(QTY, nullable=False)
+    avg_cost: Mapped[Decimal] = mapped_column(PRICE, nullable=False)
+    opened_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class BotTrade(Base):
+    __tablename__ = "bot_trades"
+    __table_args__ = (
+        CheckConstraint("side IN ('buy', 'sell')", name="ck_bot_trades_side"),
+        Index("ix_bot_trades_bot_created", "bot_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    bot_id: Mapped[int] = mapped_column(
+        ForeignKey("bots.id", ondelete="CASCADE"), nullable=False
+    )
+    coin_id: Mapped[str] = mapped_column(String, nullable=False)
+    side: Mapped[str] = mapped_column(String, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(QTY, nullable=False)
+    price: Mapped[Decimal] = mapped_column(PRICE, nullable=False)
+    total: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class BotEquity(Base):
+    __tablename__ = "bot_equity"
+    __table_args__ = (Index("ix_bot_equity_bot_created", "bot_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    bot_id: Mapped[int] = mapped_column(
+        ForeignKey("bots.id", ondelete="CASCADE"), nullable=False
+    )
+    equity: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
