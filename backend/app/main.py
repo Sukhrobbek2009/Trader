@@ -22,10 +22,10 @@ from .db import get_engine
 from .coins import COINS, search_coin_ids
 from .bot import BotConfig, run_bot_cycle
 from .history import MAX_DAYS, get_price_history
-from .models import PriceCache, Transaction, User
+from .models import Bot, BotPosition, PriceCache, Transaction, User
 from .prices import refresh_prices
 from .trading import TradeError, execute_trade
-from .valuation import snapshot_history, take_daily_snapshots, value_user, yesterday_snapshot
+from .valuation import snapshot_history, value_portfolio, take_daily_snapshots, value_user, yesterday_snapshot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -182,7 +182,7 @@ def price_history(
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
-    if request.url.path != "/trade":
+    if request.url.path not in ("/trade", "/bots"):
         return await request_validation_exception_handler(request, exc)
     # Flatten to one readable message for the trade form.
     err = exc.errors()[0]
@@ -392,6 +392,229 @@ def trade(
         # session.begin() has already rolled everything back.
         raise HTTPException(status_code=e.status, detail=e.message)
     return out
+
+
+# Strategy names a bot can run. Only the multi-indicator signal in strategy.py exists so far.
+BOT_STRATEGIES = ("indicators",)
+CENT = Decimal("0.01")
+
+
+class BotIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    coin_id: str = Field(min_length=1, max_length=64)
+    strategy: Literal[BOT_STRATEGIES]  # type: ignore[valid-type]
+    amount: Decimal = Field(max_digits=18, decimal_places=2)
+
+    @field_validator("amount")
+    @classmethod
+    def positive_amount(cls, v: Decimal) -> Decimal:
+        if not v.is_finite() or v <= 0:
+            raise ValueError("Amount must be greater than 0")
+        return v
+
+
+class BotOut(BaseModel):
+    id: int
+    name: str
+    coin_id: str
+    strategy: str
+    status: str
+    bot_cash: Decimal
+    cash_balance: Decimal  # the user's cash after funding the bot
+
+
+@app.post("/bots", response_model=BotOut, status_code=201)
+def create_bot(
+    body: BotIn,
+    device_id: str | None = Cookie(default=None),
+    session: Session = Depends(get_session),
+):
+    device = _valid_device_id(device_id)
+    if device is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    if body.coin_id not in COINS:
+        raise HTTPException(status_code=404, detail=f"Unknown coin '{body.coin_id}'")
+    # One database transaction: the balance check, the debit and the bot insert
+    # commit together or not at all. The FOR UPDATE lock on the user row makes two
+    # simultaneous requests check the balance one after the other, so they can't
+    # both spend the same cash.
+    with session.begin():
+        user = session.execute(
+            select(User).where(User.device_id == device).with_for_update()
+        ).scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+        if body.amount > user.cash_balance:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient cash: the bot needs ${body.amount} but you have ${user.cash_balance}",
+            )
+        user.cash_balance -= body.amount
+        name = f"{COINS[body.coin_id][1]} {body.strategy}"
+        bot = Bot(user_id=user.id, name=name, coin_id=body.coin_id,
+                  strategy=body.strategy, bot_cash=body.amount)
+        session.add(bot)
+        session.flush()
+        out = BotOut(id=bot.id, name=bot.name, coin_id=bot.coin_id, strategy=bot.strategy,
+                     status=bot.status, bot_cash=bot.bot_cash, cash_balance=user.cash_balance)
+    return out
+
+
+class BotStatusOut(BaseModel):
+    id: int
+    status: str
+    bot_cash: Decimal
+
+
+class BotWithdrawOut(BaseModel):
+    id: int
+    withdrawn: Decimal
+    bot_cash: Decimal      # 0.00 after a withdrawal
+    cash_balance: Decimal  # the user's wallet afterwards
+
+
+def _locked_own_bot(session: Session, device: str | None, bot_id: int) -> tuple[User, Bot]:
+    """Lock the caller's user row, then the bot, and return both (call inside session.begin()).
+
+    A bot that doesn't exist and one that belongs to someone else both give the same 404,
+    so ids can't be probed. Lock order (user, then bot) matches POST /bots.
+    """
+    if device is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    user = session.execute(
+        select(User).where(User.device_id == device).with_for_update()
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    bot = session.execute(
+        select(Bot).where(Bot.id == bot_id, Bot.user_id == user.id).with_for_update()
+    ).scalar_one_or_none()
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    return user, bot
+
+
+def _set_bot_status(bot_id: int, status: str, device_id: str | None, session: Session) -> BotStatusOut:
+    # Only the status flips. Stopping never touches bot_positions or sells anything: the
+    # bot just stops opening new entries. Repeating a call is harmless.
+    with session.begin():
+        _, bot = _locked_own_bot(session, _valid_device_id(device_id), bot_id)
+        bot.status = status
+        return BotStatusOut(id=bot.id, status=bot.status, bot_cash=bot.bot_cash)
+
+
+@app.post("/bots/{bot_id}/start", response_model=BotStatusOut)
+def start_bot(bot_id: int, device_id: str | None = Cookie(default=None),
+              session: Session = Depends(get_session)):
+    return _set_bot_status(bot_id, "running", device_id, session)
+
+
+@app.post("/bots/{bot_id}/stop", response_model=BotStatusOut)
+def stop_bot(bot_id: int, device_id: str | None = Cookie(default=None),
+             session: Session = Depends(get_session)):
+    return _set_bot_status(bot_id, "stopped", device_id, session)
+
+
+@app.post("/bots/{bot_id}/withdraw", response_model=BotWithdrawOut)
+def withdraw_bot(bot_id: int, device_id: str | None = Cookie(default=None),
+                 session: Session = Depends(get_session)):
+    with session.begin():
+        user, bot = _locked_own_bot(session, _valid_device_id(device_id), bot_id)
+        open_count = session.scalar(
+            select(func.count()).select_from(BotPosition).where(BotPosition.bot_id == bot.id)
+        )
+        if open_count:
+            raise HTTPException(
+                status_code=409,
+                detail="This bot has an open position. Wait for it to close before withdrawing.",
+            )
+        amount = bot.bot_cash
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="This bot has no cash to withdraw")
+        user.cash_balance += amount
+        bot.bot_cash = Decimal("0.00")
+        return BotWithdrawOut(id=bot.id, withdrawn=amount, bot_cash=bot.bot_cash,
+                              cash_balance=user.cash_balance)
+
+
+class BotPositionOut(BaseModel):
+    coin_id: str
+    quantity: Decimal
+    avg_cost: Decimal
+    opened_at: datetime
+    current_price: Decimal | None   # null when the coin has no usable cached price
+    current_value: Decimal | None
+    gain_loss_pct: float | None     # vs avg_cost
+
+
+class BotDetailOut(BaseModel):
+    id: int
+    name: str
+    coin_id: str
+    strategy: str
+    status: str
+    risk_pct: Decimal
+    stop_loss_pct: Decimal
+    take_profit_pct: Decimal
+    created_at: datetime
+    bot_cash: Decimal
+    position: BotPositionOut | None   # null when the bot holds nothing
+    total_equity: Decimal             # bot_cash + position at the cached price
+    unpriced_count: int               # positions left out of total_equity for lack of a price
+
+
+def _bot_detail(bot: Bot, positions: list[BotPosition], prices: dict[str, Decimal]) -> BotDetailOut:
+    # Same valuation routine as /portfolio, with the bot's own cash as the "cash".
+    val = value_portfolio(bot.bot_cash, [(p.coin_id, p.quantity, p.avg_cost) for p in positions], prices)
+    opened = {p.coin_id: p.opened_at for p in positions}
+    shown = next(
+        (BotPositionOut(coin_id=h.coin_id, quantity=h.quantity, avg_cost=h.avg_cost,
+                        opened_at=opened[h.coin_id], current_price=h.current_price,
+                        current_value=h.current_value, gain_loss_pct=h.gain_loss_pct)
+         for h in val.holdings),
+        None,
+    )
+    return BotDetailOut(
+        id=bot.id, name=bot.name, coin_id=bot.coin_id, strategy=bot.strategy, status=bot.status,
+        risk_pct=bot.risk_pct, stop_loss_pct=bot.stop_loss_pct, take_profit_pct=bot.take_profit_pct,
+        created_at=bot.created_at, bot_cash=bot.bot_cash, position=shown,
+        total_equity=val.total_value, unpriced_count=val.unpriced_count,
+    )
+
+
+def _current_user_id(session: Session, device_id: str | None) -> int:
+    device = _valid_device_id(device_id)
+    user_id = session.scalar(select(User.id).where(User.device_id == device)) if device else None
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
+    return user_id
+
+
+@app.get("/bots", response_model=list[BotDetailOut])
+def list_bots(device_id: str | None = Cookie(default=None), session: Session = Depends(get_session)):
+    user_id = _current_user_id(session, device_id)
+    bots = session.scalars(select(Bot).where(Bot.user_id == user_id).order_by(Bot.id)).all()
+    prices = {p.coin_id: p.price for p in session.scalars(select(PriceCache))}
+    by_bot: dict[int, list[BotPosition]] = {}
+    for pos in session.scalars(
+        select(BotPosition).where(BotPosition.bot_id.in_([b.id for b in bots]))
+    ):
+        by_bot.setdefault(pos.bot_id, []).append(pos)
+    return [_bot_detail(b, by_bot.get(b.id, []), prices) for b in bots]
+
+
+@app.get("/bots/{bot_id}", response_model=BotDetailOut)
+def get_bot(bot_id: int, device_id: str | None = Cookie(default=None),
+            session: Session = Depends(get_session)):
+    user_id = _current_user_id(session, device_id)
+    # Someone else's bot and a missing bot both give 404, as in the other /bots routes.
+    bot = session.scalar(select(Bot).where(Bot.id == bot_id, Bot.user_id == user_id))
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    positions = list(session.scalars(select(BotPosition).where(BotPosition.bot_id == bot.id)))
+    prices = {p.coin_id: p.price for p in session.scalars(select(PriceCache))}
+    return _bot_detail(bot, positions, prices)
 
 
 @app.get("/me", response_model=MeOut)

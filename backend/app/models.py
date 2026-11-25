@@ -99,6 +99,7 @@ class Bot(Base):
     __tablename__ = "bots"
     __table_args__ = (
         CheckConstraint("status IN ('running', 'stopped')", name="ck_bots_status"),
+        CheckConstraint("bot_cash >= 0", name="ck_bots_bot_cash"),
         Index("ix_bots_user", "user_id"),
     )
 
@@ -107,6 +108,12 @@ class Bot(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
+    coin_id: Mapped[str] = mapped_column(String, nullable=False)
+    strategy: Mapped[str] = mapped_column(String, nullable=False)
+    # Cash set aside for this bot; moved out of users.cash_balance on creation.
+    bot_cash: Mapped[Decimal] = mapped_column(
+        MONEY, nullable=False, default=Decimal("0"), server_default="0"
+    )
     status: Mapped[str] = mapped_column(
         String, nullable=False, default="stopped", server_default="stopped"
     )
