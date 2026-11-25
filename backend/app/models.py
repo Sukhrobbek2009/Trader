@@ -81,6 +81,19 @@ class PriceCache(Base):
     )
 
 
+class PriceHistory(Base):
+    """One row per successful CoinGecko fetch per coin; pruned to the newest
+    HISTORY_ROWS_PER_COIN rows by refresh_prices()."""
+
+    __tablename__ = "price_history"
+    __table_args__ = (Index("ix_price_history_coin_at", "coin_id", "at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    coin_id: Mapped[str] = mapped_column(String, nullable=False)
+    price: Mapped[Decimal] = mapped_column(PRICE, nullable=False)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class PortfolioSnapshot(Base):
     __tablename__ = "portfolio_snapshots"
     __table_args__ = (Index("ix_snapshots_user_created", "user_id", "created_at"),)

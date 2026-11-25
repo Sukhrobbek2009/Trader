@@ -6,15 +6,16 @@ import urllib.request
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
 
-from .models import PriceCache
+from .models import PriceCache, PriceHistory
 
 log = logging.getLogger(__name__)
 
 SIMPLE_PRICE_URL = "https://api.coingecko.com/api/v3/simple/price"
 TIMEOUT_SECONDS = 10
+HISTORY_ROWS_PER_COIN = 500
 
 
 def fetch_prices(coin_ids: list[str]) -> dict[str, Decimal]:
@@ -43,7 +44,8 @@ def fetch_prices(coin_ids: list[str]) -> dict[str, Decimal]:
 
 
 def refresh_prices(session: Session) -> int:
-    """Update price and fetched_at for every coin in price_cache.
+    """Update price and fetched_at for every coin in price_cache, and append each
+    fetched price to price_history (last 500 rows per coin kept).
 
     On any CoinGecko failure (timeout, HTTP error such as 429, bad JSON) the
     cache is left untouched, so the last known prices stay in place. Coins
@@ -69,7 +71,20 @@ def refresh_prices(session: Session) -> int:
             .where(PriceCache.coin_id == coin_id)
             .values(price=price, fetched_at=now)
         )
-    session.commit()
+        session.execute(insert(PriceHistory).values(coin_id=coin_id, price=price, at=now))
+        # Keep only the newest HISTORY_ROWS_PER_COIN rows for this coin.
+        keep = (
+            select(PriceHistory.id)
+            .where(PriceHistory.coin_id == coin_id)
+            .order_by(PriceHistory.at.desc(), PriceHistory.id.desc())
+            .limit(HISTORY_ROWS_PER_COIN)
+        )
+        session.execute(
+            delete(PriceHistory).where(
+                PriceHistory.coin_id == coin_id, PriceHistory.id.not_in(keep)
+            )
+        )
+    session.commit()  # cache update, history append and prune land together
     if prices:
         log.info("Refreshed %d/%d cached prices from CoinGecko", len(prices), len(coin_ids))
     return len(prices)

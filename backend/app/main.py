@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from .db import get_engine
 from .coins import COINS, search_coin_ids
-from .bot import BotConfig, run_bot_cycle
+from .bot import BotConfig, tick_all
 from .history import MAX_DAYS, get_price_history
 from .models import Bot, BotPosition, PriceCache, Transaction, User
 from .prices import refresh_prices
@@ -58,33 +58,30 @@ async def _refresh_loop():
         await asyncio.sleep(REFRESH_SECONDS)
 
 
-# Trading bot is OFF unless BOT_USER_IDS lists users to trade for, e.g. "1,2".
-# BOT_TIMEFRAME_HOURS is both the candle size and the run interval (minimum 1).
-BOT_USER_IDS = [int(x) for x in os.environ.get("BOT_USER_IDS", "").split(",") if x.strip()]
+# Bots trade only while their status is 'running' (POST /bots/{id}/start), so the loop always runs.
+# BOT_TIMEFRAME_HOURS is the candle size; BOT_TICK_SECONDS is how often every running bot is ticked.
 BOT_CONFIG = BotConfig(timeframe_hours=int(os.environ.get("BOT_TIMEFRAME_HOURS", "1")))
+BOT_TICK_SECONDS = max(10, int(os.environ.get("BOT_TICK_SECONDS", "45")))
 
 
 def _bot_once():
-    for uid in BOT_USER_IDS:
-        try:
-            with Session(get_engine()) as session:
-                run_bot_cycle(session, uid, BOT_CONFIG)
-        except Exception:
-            log.exception("Bot cycle failed for user %s", uid)
+    with Session(get_engine()) as session:
+        tick_all(session, BOT_CONFIG)
 
 
 async def _bot_loop():
     await asyncio.sleep(60)  # let the first price refresh land
     while True:
-        await asyncio.to_thread(_bot_once)
-        await asyncio.sleep(BOT_CONFIG.timeframe_hours * 3600)
+        try:
+            await asyncio.to_thread(_bot_once)   # tick_all isolates each bot; this guards the rest
+        except Exception:
+            log.exception("Bot tick pass crashed; will retry next cycle")
+        await asyncio.sleep(BOT_TICK_SECONDS)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    tasks = [asyncio.create_task(_refresh_loop())]
-    if BOT_USER_IDS:
-        tasks.append(asyncio.create_task(_bot_loop()))
+    tasks = [asyncio.create_task(_refresh_loop()), asyncio.create_task(_bot_loop())]
     try:
         yield
     finally:
@@ -589,6 +586,18 @@ def _current_user_id(session: Session, device_id: str | None) -> int:
     if user_id is None:
         raise HTTPException(status_code=401, detail="No guest session; call GET /me first")
     return user_id
+
+
+@app.post("/bots/tick")
+def tick_bots(device_id: str | None = Cookie(default=None), session: Session = Depends(get_session)):
+    """Run one tick pass now over the caller's running bots; each decision is logged.
+    Scoped to the caller so one guest can't trigger trades on another's bots."""
+    user_id = _current_user_id(session, device_id)
+    session.rollback()
+    decisions = tick_all(session, BOT_CONFIG, user_id=user_id)
+    if decisions is None:
+        raise HTTPException(status_code=409, detail="A tick is already running; try again in a moment")
+    return {"decisions": decisions}
 
 
 @app.get("/bots", response_model=list[BotDetailOut])
